@@ -5,6 +5,7 @@ import { Command, URI } from '@theia/core';
 import { WorkflowRunsTreeWidget } from '../../tree/workflow-runs/WorkflowRunsTreeWidget';
 import { WorkflowRunsTree, WorkflowRunsRootNode } from '../../tree/workflow-runs/WorkflowRunsTree';
 import { OpenerService } from '@theia/core/lib/browser';
+import { ExpandableTreeNode, CompositeTreeNode, TreeNode } from '@theia/core/lib/browser/tree';
 import {
     IconButton, Tooltip, Box, Select, MenuItem, FormControl,
     ToggleButton, ToggleButtonGroup, TextField, SelectChangeEvent,
@@ -373,13 +374,58 @@ export default class WorkflowRunsWidget extends BaseWidget {
      * so we do NOT call model.refresh() separately to avoid double API calls.
      */
     protected reloadTree(): void {
+        // Save expanded node IDs before replacing the root
+        const expandedIds = this.collectExpandedIds();
+
         this.toolbar.toolbarRef.setLoading(true);
         this.treeWidget.model.root = WorkflowRunsRootNode.create();
         // Tree refresh is async via resolveChildren. Listen for the next change to clear loading.
         const listener = this.treeWidget.model.onChanged(() => {
             this.toolbar.toolbarRef.setLoading(false);
             listener.dispose();
+            // Re-expand previously expanded nodes
+            if (expandedIds.size > 0) {
+                this.restoreExpandedIds(expandedIds);
+            }
         });
+    }
+
+    /** Collect IDs of all currently expanded nodes */
+    protected collectExpandedIds(): Set<string> {
+        const ids = new Set<string>();
+        const root = this.treeWidget.model.root;
+        if (root) {
+            this.walkTree(root, node => {
+                if (ExpandableTreeNode.is(node) && node.expanded) {
+                    ids.add(node.id);
+                }
+            });
+        }
+        return ids;
+    }
+
+    /** Re-expand nodes matching the saved IDs */
+    protected async restoreExpandedIds(ids: Set<string>): Promise<void> {
+        const root = this.treeWidget.model.root;
+        if (!root) return;
+        const toExpand: ExpandableTreeNode[] = [];
+        this.walkTree(root, node => {
+            if (ExpandableTreeNode.is(node) && !node.expanded && ids.has(node.id)) {
+                toExpand.push(node);
+            }
+        });
+        for (const node of toExpand) {
+            await this.treeWidget.model.expandNode(node);
+        }
+    }
+
+    protected walkTree(node: TreeNode, fn: (node: TreeNode) => void): void {
+        fn(node);
+        if (CompositeTreeNode.is(node)) {
+            for (const child of node.children) {
+                this.walkTree(child, fn);
+            }
+        }
     }
 
     protected override onActivateRequest(msg: Message): void {
