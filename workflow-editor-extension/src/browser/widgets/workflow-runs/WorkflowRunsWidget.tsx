@@ -191,7 +191,7 @@ function WorkflowRunsToolbarContent({
                         </FormControl>
 
                         {loading ? (
-                            <CircularProgress size={20} sx={{ padding: '4px' }} />
+                            <CircularProgress size={16} sx={{ margin: '6px', color: 'var(--theia-icon-foreground)' }} />
                         ) : (
                             <Tooltip title="Refresh">
                                 <IconButton size="small" onClick={onRefresh} sx={{ padding: '4px' }}>
