@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BaseWidget, Message, BoxLayout, ReactWidget } from '@theia/core/lib/browser';
+import { BaseWidget, Message, PanelLayout, ReactWidget } from '@theia/core/lib/browser';
 import { inject, injectable, postConstruct } from '@theia/core/shared/inversify';
 import { Command, URI } from '@theia/core';
 import { WorkflowRunsTreeWidget } from '../../tree/workflow-runs/WorkflowRunsTreeWidget';
@@ -151,7 +151,8 @@ function WorkflowRunsToolbarContent({
                     flexDirection: 'column',
                     gap: 0.5,
                     padding: '4px 8px',
-                    borderBottom: '1px solid var(--theia-sideBarSectionHeader-border)'
+                    borderBottom: '1px solid var(--theia-sideBarSectionHeader-border)',
+                    backgroundColor: 'var(--theia-sideBarSectionHeader-background)'
                 }}>
                     {/* Preset buttons row */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -232,7 +233,6 @@ class WorkflowRunsToolbar extends ReactWidget {
     constructor() {
         super();
         this.addClass('workflow-runs-toolbar');
-        this.node.style.minHeight = '40px';
         this.node.style.flexShrink = '0';
     }
 
@@ -295,15 +295,21 @@ export default class WorkflowRunsWidget extends BaseWidget {
             () => this.refresh()
         );
 
-        const layout = new BoxLayout({ direction: 'top-to-bottom' });
+        // Use PanelLayout for proper widget lifecycle management.
+        // Unlike BoxLayout, PanelLayout doesn't set absolute heights on children,
+        // allowing the toolbar to grow naturally when custom date pickers are shown.
+        // The actual sizing is handled by CSS flexbox on the parent node.
+        const layout = new PanelLayout();
         layout.addWidget(this.toolbar);
         layout.addWidget(this.treeWidget);
-        BoxLayout.setStretch(this.toolbar, 0);
-        BoxLayout.setStretch(this.treeWidget, 1);
         this.layout = layout;
 
+        // Toolbar: natural height, no shrink
+        this.toolbar.node.style.flexShrink = '0';
+
+        // Tree: fill remaining space
         this.treeWidget.node.style.flex = '1';
-        this.treeWidget.node.style.height = '100%';
+        this.treeWidget.node.style.minHeight = '0';
         this.treeWidget.node.style.overflow = 'auto';
 
         // Handle "Load more" clicks
