@@ -117,8 +117,8 @@ export class WorkflowRunsTreeWidget extends TreeWidget {
         if (WorkflowNode.is(node)) {
             return (
                 <span
-                    className="theia-tree-icon codicon codicon-workflow"
-                    style={{ marginRight: '8px', fontSize: '16px' }}
+                    className="theia-tree-icon fa fa-solid fa-diagram-project"
+                    style={{ marginRight: '8px', fontSize: '14px' }}
                 ></span>
             );
         }
