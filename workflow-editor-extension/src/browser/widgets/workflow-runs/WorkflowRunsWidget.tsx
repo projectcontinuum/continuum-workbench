@@ -7,7 +7,8 @@ import { WorkflowRunsTree, WorkflowRunsRootNode } from '../../tree/workflow-runs
 import { OpenerService } from '@theia/core/lib/browser';
 import {
     IconButton, Tooltip, Box, Select, MenuItem, FormControl,
-    ToggleButton, ToggleButtonGroup, TextField, SelectChangeEvent
+    ToggleButton, ToggleButtonGroup, TextField, SelectChangeEvent,
+    CircularProgress
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { ThemeProvider, experimental_extendTheme, Experimental_CssVarsProvider as CssVarsProvider } from '@mui/material';
@@ -67,6 +68,7 @@ function toDateTimeLocal(date: Date): string {
 interface ToolbarRef {
     getCurrentFilter: () => string;
     getPageSize: () => number;
+    setLoading: (loading: boolean) => void;
 }
 
 function WorkflowRunsToolbarContent({
@@ -87,6 +89,11 @@ function WorkflowRunsToolbarContent({
         const { from, to } = getPresetDates('24h');
         return { preset: '24h', fromDate: from, toDate: to, pageSize: 50 };
     });
+
+    const [loading, setLoading] = React.useState(false);
+
+    // Expose loading control to the parent widget
+    toolbarRef.setLoading = setLoading;
 
     // Expose a method that recalculates the rolling window for preset modes.
     // For presets, "now" is recalculated each time this is called.
@@ -183,11 +190,15 @@ function WorkflowRunsToolbarContent({
                             </Select>
                         </FormControl>
 
-                        <Tooltip title="Refresh">
-                            <IconButton size="small" onClick={onRefresh} sx={{ padding: '4px' }}>
-                                <RefreshIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
+                        {loading ? (
+                            <CircularProgress size={20} sx={{ padding: '4px' }} />
+                        ) : (
+                            <Tooltip title="Refresh">
+                                <IconButton size="small" onClick={onRefresh} sx={{ padding: '4px' }}>
+                                    <RefreshIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                     </Box>
 
                     {/* Custom date pickers row - only shown when custom is selected */}
@@ -227,7 +238,8 @@ class WorkflowRunsToolbar extends ReactWidget {
     /** Ref shared with the React component to access current filter state */
     readonly toolbarRef: ToolbarRef = {
         getCurrentFilter: () => buildTimeFilter(...Object.values(getPresetDates('24h')) as [Date, Date]),
-        getPageSize: () => 50
+        getPageSize: () => 50,
+        setLoading: () => {}
     };
 
     constructor() {
@@ -355,8 +367,14 @@ export default class WorkflowRunsWidget extends BaseWidget {
      * so we do NOT call model.refresh() separately to avoid double API calls.
      */
     protected refresh(): void {
+        this.toolbar.toolbarRef.setLoading(true);
         this.tree.timeFilter = this.toolbar.toolbarRef.getCurrentFilter();
         this.treeWidget.model.root = WorkflowRunsRootNode.create();
+        // Tree refresh is async via resolveChildren. Listen for the next change to clear loading.
+        const listener = this.treeWidget.model.onChanged(() => {
+            this.toolbar.toolbarRef.setLoading(false);
+            listener.dispose();
+        });
     }
 
     protected override onActivateRequest(msg: Message): void {
