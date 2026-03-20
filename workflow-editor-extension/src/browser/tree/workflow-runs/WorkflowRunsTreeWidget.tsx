@@ -2,6 +2,7 @@ import * as React from 'react';
 import { TreeWidget, TreeProps, TreeNode, NodeProps, TreeModel } from '@theia/core/lib/browser/tree';
 import { ContextMenuRenderer } from '@theia/core/lib/browser';
 import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
+import { ExpandableTreeNode } from '@theia/core/lib/browser/tree/tree-expansion';
 import { WorkflowNode, WorkflowRunNode, LoadMoreNode, FolderNode } from './WorkflowRunsTree';
 import { Emitter, Event } from '@theia/core/lib/common';
 
@@ -148,6 +149,15 @@ export class WorkflowRunsTreeWidget extends TreeWidget {
             return <span style={{ fontStyle: 'italic' }}>Load more...</span>;
         }
         return super.getCaptionChildren(node, props);
+    }
+
+    protected override renderExpansionToggle(node: TreeNode, props: NodeProps): React.ReactNode {
+        if (ExpandableTreeNode.is(node) && (node as any).loading) {
+            return (
+                <div className="theia-tree-node-toggle codicon codicon-loading codicon-modifier-spin" />
+            );
+        }
+        return super.renderExpansionToggle(node, props);
     }
 
     protected override handleDblClickEvent(node: TreeNode | undefined, event: React.MouseEvent<HTMLElement>): void {

@@ -119,14 +119,26 @@ export class WorkflowRunsTree extends TreeImpl {
 
     protected override async resolveChildren(parent: CompositeTreeNode): Promise<TreeNode[]> {
         if (WorkflowRunsRootNode.is(parent)) {
-            return this.loadWorkflowTree(parent, 0);
+            (parent as any).loading = true;
+            this.fireChanged();
+            try {
+                return await this.loadWorkflowTree(parent, 0);
+            } finally {
+                (parent as any).loading = false;
+            }
         }
         // Folder nodes already have children populated — just return them
         if (FolderNode.is(parent)) {
             return [...parent.children];
         }
         if (WorkflowNode.is(parent)) {
-            return this.loadRuns(parent, 0);
+            (parent as any).loading = true;
+            this.fireChanged();
+            try {
+                return await this.loadRuns(parent, 0);
+            } finally {
+                (parent as any).loading = false;
+            }
         }
         return [];
     }
