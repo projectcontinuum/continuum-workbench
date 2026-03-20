@@ -350,25 +350,30 @@ export default class WorkflowRunsWidget extends BaseWidget {
 
     protected handleTimeFilterChange(filter: string): void {
         this.tree.timeFilter = filter;
-        this.refresh();
+        this.reloadTree();
     }
 
     protected handlePageSizeChange(size: number): void {
         this.tree.pageSize = size;
-        this.refresh();
+        this.reloadTree();
     }
 
     /**
-     * Refresh the tree. For preset time ranges (1h/24h/7d/30d), the window
-     * is recalculated relative to "now" — acting as a rolling time window.
-     * For custom mode, the fixed user-selected dates are used as-is.
-     *
+     * Refresh button handler. Recalculates the rolling time window from the
+     * current preset (e.g., "last 24h from now") before reloading.
+     */
+    protected refresh(): void {
+        this.tree.timeFilter = this.toolbar.toolbarRef.getCurrentFilter();
+        this.reloadTree();
+    }
+
+    /**
+     * Reload the tree with the current timeFilter and pageSize.
      * Setting model.root triggers an implicit refresh via Theia's TreeModel,
      * so we do NOT call model.refresh() separately to avoid double API calls.
      */
-    protected refresh(): void {
+    protected reloadTree(): void {
         this.toolbar.toolbarRef.setLoading(true);
-        this.tree.timeFilter = this.toolbar.toolbarRef.getCurrentFilter();
         this.treeWidget.model.root = WorkflowRunsRootNode.create();
         // Tree refresh is async via resolveChildren. Listen for the next change to clear loading.
         const listener = this.treeWidget.model.onChanged(() => {
