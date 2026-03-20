@@ -1,6 +1,14 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { IWorkflowRunItem, PageResponse } from "@continuum/core";
 
+/** Full workflow run entity including the heavy `data` JSONB column */
+export interface WorkflowRunFull extends IWorkflowRunItem {
+    data: {
+        workflowSnapshot?: any;
+        nodeToOutputMap?: any;
+    };
+}
+
 @injectable()
 export default class WorkflowRunsService {
 
@@ -42,6 +50,19 @@ export default class WorkflowRunsService {
         const response = await fetch(url.toString(), { headers: this.headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch workflow runs: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+    }
+
+    /**
+     * Fetch a single workflow run by ID, including the full `data` column
+     * (workflowSnapshot + nodeToOutputMap). Used by the execution viewer.
+     */
+    async getRunById(workflowId: string): Promise<WorkflowRunFull> {
+        const url = new URL(`${this.apiBaseUrl}/${workflowId}`);
+        const response = await fetch(url.toString(), { headers: this.headers });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch workflow run: ${response.status} ${response.statusText}`);
         }
         return response.json();
     }

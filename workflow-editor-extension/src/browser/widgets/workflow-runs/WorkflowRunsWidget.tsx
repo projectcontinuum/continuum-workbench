@@ -315,7 +315,15 @@ export default class WorkflowRunsWidget extends BaseWidget {
         this.treeWidget.onRunDoubleClick(node => {
             const uri = new URI(`continuum-execution-watch://${node.runData.workflowId}`);
             this.openerService.getOpener(uri).then(opener => {
-                opener.open(uri, { execution: node.runData });
+                // Map IWorkflowRunItem to partial IExecution shape.
+                // WorkflowViewerWidget will fetch the full entity (with data) from the API.
+                opener.open(uri, {
+                    execution: {
+                        id: node.runData.workflowId,
+                        workflowId: node.runData.workflowId,
+                        status: node.runData.status
+                    }
+                });
             });
         });
 
