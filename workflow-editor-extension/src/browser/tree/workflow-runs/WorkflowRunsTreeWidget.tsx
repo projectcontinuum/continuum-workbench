@@ -12,7 +12,7 @@ export const WORKFLOW_RUNS_CONTEXT_MENU: string[] = ['workflow-runs-context-menu
 const STATUS_ICON_MAP: Record<string, { icon: string; color: string }> = {
     'PENDING': { icon: 'codicon codicon-clock', color: 'var(--theia-editorWarning-foreground)' },
     'RUNNING': { icon: 'codicon codicon-sync codicon-modifier-spin', color: 'var(--theia-progressBar-background)' },
-    'COMPLETED': { icon: 'codicon codicon-check', color: 'var(--theia-testing-iconPassed)' },
+    'FINISHED': { icon: 'codicon codicon-pass-filled', color: 'var(--theia-testing-iconPassed, #2ea043)' },
     'FAILED': { icon: 'codicon codicon-error', color: 'var(--theia-testing-iconFailed)' },
     'TIMED_OUT': { icon: 'codicon codicon-watch', color: 'var(--theia-editorWarning-foreground)' },
     'CANCELED': { icon: 'codicon codicon-circle-slash', color: 'var(--theia-descriptionForeground)' },
