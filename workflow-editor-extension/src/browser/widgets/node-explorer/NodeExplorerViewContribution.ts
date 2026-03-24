@@ -17,7 +17,7 @@ export class NodeExplorerViewContribution extends AbstractViewContribution<NodeE
         super({
             widgetId: NodeExplorerWidget.ID,
             widgetName: NodeExplorerWidget.LABEL,
-            defaultWidgetOptions: { area: "left" },
+            defaultWidgetOptions: { area: "right" },
             toggleCommandId: NodeExplorerWidget.COMMAND.id,
             toggleKeybinding: `shift+cmd+n`
         });
