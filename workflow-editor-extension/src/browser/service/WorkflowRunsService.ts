@@ -1,5 +1,6 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { IWorkflowRunItem, PageResponse } from "@continuum/core";
+import { API_SERVER_BASE } from "./ApiConfig";
 
 /** Full workflow run entity including the heavy `data` JSONB column */
 export interface WorkflowRunFull extends IWorkflowRunItem {
@@ -12,7 +13,7 @@ export interface WorkflowRunFull extends IWorkflowRunItem {
 @injectable()
 export default class WorkflowRunsService {
 
-    private readonly apiBaseUrl: string = 'http://localhost:8080/api/v1/workflow-runs';
+    private readonly apiBaseUrl: string = `${API_SERVER_BASE}/api/v1/workflow-runs`;
 
     private get headers(): Record<string, string> {
         return {

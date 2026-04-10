@@ -1,10 +1,11 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { INodeExplorerTreeItem } from "@continuum/core";
+import { API_SERVER_BASE } from "./ApiConfig";
 
 @injectable()
 export default class NodeExplorerService {
 
-    private readonly apiBaseUrl: string = 'http://localhost:8080/api/v1/node-explorer';
+    private readonly apiBaseUrl: string = `${API_SERVER_BASE}/api/v1/node-explorer`;
 
     async getChildren(parentId: string = ""): Promise<INodeExplorerTreeItem[]> {
         const url = new URL(`${this.apiBaseUrl}/children`);
