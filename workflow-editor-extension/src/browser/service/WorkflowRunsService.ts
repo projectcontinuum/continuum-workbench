@@ -22,7 +22,7 @@ export default class WorkflowRunsService {
     }
 
     async getDistinctWorkflows(filter?: string, page = 0, size = 50): Promise<PageResponse<string>> {
-        const url = new URL(`${this.apiBaseUrl}/distinct-workflows`);
+        const url = new URL(`${this.apiBaseUrl}/distinct-workflows`, window.location.origin);
         url.searchParams.append('page', page.toString());
         url.searchParams.append('size', size.toString());
         if (filter) {
@@ -36,7 +36,7 @@ export default class WorkflowRunsService {
     }
 
     async getRunsByWorkflowUri(workflowUri: string, timeFilter?: string, page = 0, size = 50): Promise<PageResponse<IWorkflowRunItem>> {
-        const url = new URL(this.apiBaseUrl);
+        const url = new URL(this.apiBaseUrl, window.location.origin);
         url.searchParams.append('page', page.toString());
         url.searchParams.append('size', size.toString());
 
@@ -59,7 +59,7 @@ export default class WorkflowRunsService {
      * (workflowSnapshot + nodeToOutputMap). Used by the execution viewer.
      */
     async getRunById(workflowId: string): Promise<WorkflowRunFull> {
-        const url = new URL(`${this.apiBaseUrl}/${workflowId}`);
+        const url = new URL(`${this.apiBaseUrl}/${workflowId}`, window.location.origin);
         const response = await fetch(url.toString(), { headers: this.headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch workflow run: ${response.status} ${response.statusText}`);

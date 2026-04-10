@@ -8,7 +8,7 @@ export default class NodeExplorerService {
     private readonly apiBaseUrl: string = `${API_SERVER_BASE}/api/v1/node-explorer`;
 
     async getChildren(parentId: string = ""): Promise<INodeExplorerTreeItem[]> {
-        const url = new URL(`${this.apiBaseUrl}/children`);
+        const url = new URL(`${this.apiBaseUrl}/children`, window.location.origin);
         if (parentId) {
             url.searchParams.append('parentId', parentId);
         }
@@ -27,7 +27,7 @@ export default class NodeExplorerService {
 
     async search(query: string): Promise<INodeExplorerTreeItem[]> {
         if (!query.trim()) return [];
-        const url = new URL(`${this.apiBaseUrl}/search`);
+        const url = new URL(`${this.apiBaseUrl}/search`, window.location.origin);
         url.searchParams.append('query', query);
         const response = await fetch(url.toString());
         if (!response.ok) {
