@@ -1,6 +1,6 @@
-import { API_SERVER_BASE } from './ApiConfig';
+import { CREDENTIALS_MANAGER_BASE } from './ApiConfig';
 
-const API_BASE = `${API_SERVER_BASE}/api/v1/credentials`;
+const API_BASE = `${CREDENTIALS_MANAGER_BASE}/api/v1/credentials`;
 
 export interface CredentialResponse {
   userId: string;
