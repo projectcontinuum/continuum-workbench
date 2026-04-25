@@ -11,14 +11,75 @@ import {
   MenuItem,
   SelectChangeEvent,
   Button,
-  IconButton,
-  InputAdornment,
-  OutlinedInput,
 } from '@mui/material';
 import { isControl, rankWith } from '@jsonforms/core';
 import AddIcon from '@mui/icons-material/Add';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import { credentialsService, CredentialResponse } from '../../service/CredentialsService';
+
+// Mock credentials for local testing - set to true to use mock data
+const USE_MOCK_DATA = false;
+
+const MOCK_CREDENTIALS: Record<string, CredentialResponse[]> = {
+  BASIC: [
+    {
+      userId: 'anonymous',
+      name: 'admin-basic-auth',
+      type: 'BASIC',
+      typeVersion: '1.0.0',
+      description: 'Admin credentials for internal APIs',
+      createdAt: '2026-04-24T10:00:00Z',
+      updatedAt: '2026-04-24T10:00:00Z',
+    },
+    {
+      userId: 'anonymous',
+      name: 'service-account',
+      type: 'BASIC',
+      typeVersion: '1.0.0',
+      description: 'Service account for batch jobs',
+      createdAt: '2026-04-24T11:00:00Z',
+      updatedAt: '2026-04-24T11:00:00Z',
+    },
+  ],
+  TOKEN: [
+    {
+      userId: 'anonymous',
+      name: 'github-token',
+      type: 'TOKEN',
+      typeVersion: '1.0.0',
+      description: 'GitHub API access token',
+      createdAt: '2026-04-24T12:00:00Z',
+      updatedAt: '2026-04-24T12:00:00Z',
+    },
+    {
+      userId: 'anonymous',
+      name: 'openai-api-key',
+      type: 'TOKEN',
+      typeVersion: '1.0.0',
+      description: 'OpenAI API key for LLM calls',
+      createdAt: '2026-04-24T13:00:00Z',
+      updatedAt: '2026-04-24T13:00:00Z',
+    },
+  ],
+  GENERIC: [
+    {
+      userId: 'anonymous',
+      name: 'basic-api-creds',
+      type: 'GENERIC',
+      typeVersion: '1.0.0',
+      description: 'Generic API credentials',
+      createdAt: '2026-04-24T19:14:21Z',
+      updatedAt: '2026-04-24T19:14:21Z',
+    },
+  ],
+};
+
+const getMockCredentials = (type?: string): CredentialResponse[] => {
+  if (type) {
+    return MOCK_CREDENTIALS[type] || [];
+  }
+  // Return all credentials
+  return Object.values(MOCK_CREDENTIALS).flat();
+};
 
 interface CredentialRendererProps extends ControlProps {
   options?: {
@@ -33,13 +94,26 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
     handleChange,
     label,
     errors,
-    options = {},
     visible,
     path,
+    uischema,
   } = props;
 
+  // Options are in uischema.options, not directly in props
+  const options = (uischema as any)?.options || {};
   const credentialType = options.credentialType || '';
   const format = options.format || '';
+
+  console.log('[CredentialRenderer] Render called with props:', {
+    path,
+    label,
+    format,
+    credentialType,
+    visible,
+    data,
+    options,
+    uischema,
+  });
 
   const [credentials, setCredentials] = React.useState<CredentialResponse[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -52,7 +126,11 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
     try {
       let fetchedCredentials: CredentialResponse[];
 
-      if (credentialType) {
+      if (USE_MOCK_DATA) {
+        // Use mock data for local testing
+        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+        fetchedCredentials = getMockCredentials(credentialType);
+      } else if (credentialType) {
         // Fetch credentials filtered by type
         fetchedCredentials = await credentialsService.listByType(credentialType);
       } else {
@@ -79,22 +157,22 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
     handleChange(path, event.target.value);
   };
 
-  const handleRefresh = () => {
-    fetchCredentials();
-  };
-
   const handleAddNew = () => {
     // TODO: Open credential creation dialog/modal
     console.log('Add new credential clicked, type:', credentialType);
   };
 
   if (format !== 'credential') {
+    console.log('[CredentialRenderer] Returning null - format is not "credential":', format);
     return null;
   }
 
   if (!visible) {
+    console.log('[CredentialRenderer] Returning null - not visible');
     return null;
   }
+
+  console.log('[CredentialRenderer] Rendering component with credentials:', credentials);
 
   const hasError = Boolean(errors && errors.length > 0);
   const errorMessage = hasError ? errors : undefined;
@@ -118,24 +196,11 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
             label={loading ? 'Loading...' : 'Select Credential'}
             onChange={handleSelectChange}
             disabled={loading}
-            input={
-              <OutlinedInput
-                label={loading ? 'Loading...' : 'Select Credential'}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={handleRefresh}
-                      disabled={loading}
-                      sx={{ mr: 1 }}
-                      title="Refresh credentials"
-                    >
-                      <RefreshIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                }
-              />
-            }
+            MenuProps={{
+              PaperProps: {
+                sx: { zIndex: 9999 }
+              }
+            }}
           >
             <MenuItem value="">
               <em>None</em>
@@ -177,10 +242,16 @@ const CredentialControl = withJsonFormsControlProps(CredentialRenderer);
 export const credentialTester = rankWith(
   10,
   (uischema: any) => {
-    return (
-      isControl(uischema) &&
-      uischema.options?.format === 'credential'
-    );
+    const isMatch = isControl(uischema) && uischema.options?.format === 'credential';
+    console.log('[credentialTester] Testing uischema:', {
+      type: uischema?.type,
+      scope: uischema?.scope,
+      options: uischema?.options,
+      isControl: isControl(uischema),
+      hasCredentialFormat: uischema?.options?.format === 'credential',
+      isMatch,
+    });
+    return isMatch;
   }
 );
 

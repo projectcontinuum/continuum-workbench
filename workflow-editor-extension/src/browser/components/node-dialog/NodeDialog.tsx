@@ -237,6 +237,8 @@ const ResizeHandle = styled('div')(({ theme }) => ({
 const MIN_DIALOG_WIDTH = 400;
 const MIN_DIALOG_HEIGHT = 300;
 
+console.log('[NodeDialog] Registering custom renderers including CredentialControl');
+
 const customRenderers = [
   { tester: codeEditorTester, renderer: CodeEditorControl },
   { tester: credentialTester, renderer: CredentialControl },
