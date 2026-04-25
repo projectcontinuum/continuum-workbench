@@ -162,8 +162,8 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
   };
 
   const handleAddNew = () => {
-    // TODO: Open credential creation dialog/modal
-    console.log('Add new credential clicked, type:', credentialType);
+    // Open credentials manager UI in a new browser tab
+    window.open('/credentials-manager/ui', '_blank');
   };
 
   if (format !== 'credential') {
