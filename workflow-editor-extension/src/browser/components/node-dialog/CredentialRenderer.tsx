@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { isControl, rankWith } from '@jsonforms/core';
 import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { credentialsService, CredentialResponse } from '../../service/CredentialsService';
 
 // Mock credentials for local testing - set to true to use mock data
@@ -148,10 +149,12 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
     }
   }, [credentialType]);
 
-  // Fetch credentials on mount and when credentialType changes
+  // Fetch credentials only when visible and credentialType changes
   React.useEffect(() => {
-    fetchCredentials();
-  }, [fetchCredentials]);
+    if (visible && format === 'credential') {
+      fetchCredentials();
+    }
+  }, [fetchCredentials, visible, format]);
 
   const handleSelectChange = (event: SelectChangeEvent<string>) => {
     handleChange(path, event.target.value);
@@ -212,6 +215,16 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
             ))}
           </Select>
         </FormControl>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={fetchCredentials}
+          disabled={loading}
+          sx={{ minWidth: 'auto', p: '4px' }}
+          title="Refresh credentials"
+        >
+          <RefreshIcon fontSize="small" />
+        </Button>
         <Button
           variant="outlined"
           size="small"
