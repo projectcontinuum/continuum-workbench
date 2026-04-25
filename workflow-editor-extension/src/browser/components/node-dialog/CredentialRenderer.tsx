@@ -5,12 +5,10 @@ import {
   Box,
   FormHelperText,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
+  TextField,
   Button,
+  Autocomplete,
+  CircularProgress,
 } from '@mui/material';
 import { isControl, rankWith } from '@jsonforms/core';
 import AddIcon from '@mui/icons-material/Add';
@@ -156,8 +154,11 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
     }
   }, [fetchCredentials, visible, format]);
 
-  const handleSelectChange = (event: SelectChangeEvent<string>) => {
-    handleChange(path, event.target.value);
+  const handleAutocompleteChange = (
+    _event: React.SyntheticEvent,
+    value: CredentialResponse | null
+  ) => {
+    handleChange(path, value?.name || '');
   };
 
   const handleAddNew = () => {
@@ -188,33 +189,50 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
         </Typography>
       )}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FormControl fullWidth error={hasError || !!error} size="small">
-          <InputLabel id={`credential-select-label-${path}`}>
-            {loading ? 'Loading...' : 'Select Credential'}
-          </InputLabel>
-          <Select
-            labelId={`credential-select-label-${path}`}
-            id={`credential-select-${path}`}
-            value={data || ''}
-            label={loading ? 'Loading...' : 'Select Credential'}
-            onChange={handleSelectChange}
-            disabled={loading}
-            MenuProps={{
-              PaperProps: {
-                sx: { zIndex: 9999 }
-              }
-            }}
-          >
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
-            {credentials.map((cred) => (
-              <MenuItem key={cred.name} value={cred.name}>
-                {cred.name} {cred.description && `- ${cred.description}`}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          fullWidth
+          size="small"
+          options={credentials}
+          getOptionLabel={(option) => option.name}
+          value={credentials.find((c) => c.name === data) || null}
+          onChange={handleAutocompleteChange}
+          loading={loading}
+          disabled={loading}
+          isOptionEqualToValue={(option, value) => option.name === value.name}
+          renderOption={(props, option) => (
+            <li {...props} key={option.name}>
+              <Box>
+                <Typography variant="body2">{option.name}</Typography>
+                {option.description && (
+                  <Typography variant="caption" color="text.secondary">
+                    {option.description}
+                  </Typography>
+                )}
+              </Box>
+            </li>
+          )}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Credential"
+              error={hasError || !!error}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+          slotProps={{
+            popper: {
+              sx: { zIndex: 9999 }
+            }
+          }}
+        />
         <Button
           variant="outlined"
           size="small"
