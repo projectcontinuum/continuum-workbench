@@ -100,15 +100,17 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
+  const isActive = value === index;
   return (
     <div
       role="tabpanel"
-      hidden={value !== index}
+      hidden={!isActive}
       id={`categorization-tabpanel-${index}`}
       aria-labelledby={`categorization-tab-${index}`}
+      style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' } : undefined}
       {...other}
     >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {isActive && <Box sx={{ pt: 2 }}>{children}</Box>}
     </div>
   );
 }
