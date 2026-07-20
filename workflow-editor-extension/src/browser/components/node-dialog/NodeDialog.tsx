@@ -1,7 +1,7 @@
 import * as React from 'react';
 import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
-import { Box, Button, DialogActions, DialogContent, IconButton, Typography, styled, Tabs, Tab } from '@mui/material';
+import { Box, Button, Chip, DialogActions, DialogContent, IconButton, TextField, Typography, styled, Tabs, Tab } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MaximizeIcon from '@mui/icons-material/Fullscreen';
 import RestoreIcon from '@mui/icons-material/FullscreenExit';
@@ -25,6 +25,7 @@ import {
 } from '@jsonforms/core';
 import CodeEditorControl, { codeEditorTester } from './CodeEditorRenderer';
 import CredentialControl, { credentialTester } from './CredentialRenderer';
+import { IRetryOptions } from '@continuum/core';
 
 /**
  * Custom Group Layout Renderer
@@ -251,14 +252,15 @@ export interface NodeDialogProps {
     open: boolean;
     // selectedValue: string;
     onClose: (value: any) => void;
-    onSave: (data: any) => void;
+    onSave: (data: any, retryOptions?: IRetryOptions) => void;
     initialData?: any;
     dataSchema?: JsonSchema;
     uiSchema?: UISchemaElement;
     readOnly?: boolean;
+    initialRetryOptions?: IRetryOptions;
 }
 
-export default function NodeDialog({ onClose, onSave, readOnly=false, open, initialData, dataSchema, uiSchema }: NodeDialogProps) {
+export default function NodeDialog({ onClose, onSave, readOnly=false, open, initialData, dataSchema, uiSchema, initialRetryOptions }: NodeDialogProps) {
 
     const [data, setData] = React.useState(initialData);
     const [hasErrors, setHasErrors] = React.useState(false);
@@ -267,6 +269,9 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
     const [isMaximized, setIsMaximized] = React.useState(false);
     const resizeStartPos = React.useRef({ x: 0, y: 0, width: 0, height: 0 });
     const previousSize = React.useRef({ width: 600, height: 600 });
+    const [retryOptions, setRetryOptions] = React.useState<IRetryOptions>(initialRetryOptions || {});
+    const [doNotRetryInput, setDoNotRetryInput] = React.useState('');
+    const [activeTopTab, setActiveTopTab] = React.useState(0);
 
     const handleClose = React.useCallback((args: any) => {
         console.log("handleClose", args);
@@ -275,8 +280,8 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
 
     const onSavePressed = React.useCallback((args: any) => {
         console.log("onSavePressed", args);
-        onSave(data);
-    }, [data]);
+        onSave(data, retryOptions);
+    }, [data, retryOptions, onSave]);
 
     const onDataChange = React.useCallback(({errors, data}: Pick<JsonFormsCore, "data" | "errors">) => {
         setData(data);
@@ -366,44 +371,112 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                 <CloseIcon />
             </IconButton>
             <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Box sx={{
-                    minWidth: "500px",
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'auto',
-                    p: 2,
-                    // Ensure JsonForms categorization layout takes full space
-                    '& > div': {
-                      display: 'flex',
-                      flexDirection: 'column',
-                      flex: 1,
-                    },
-                    // Style MUI Tabs for the categorization
-                    '& .MuiTabs-root': {
-                      minHeight: 'auto',
-                      borderBottom: 1,
-                      borderColor: 'divider',
-                    },
-                    // Ensure tab panels display correctly
-                    '& .MuiBox-root[role="tabpanel"]': {
-                      flex: 1,
-                      overflow: 'auto',
-                      pt: 2,
-                    },
-                    // Fix for hidden tab panels
-                    '& .MuiBox-root[role="tabpanel"][hidden]': {
-                      display: 'none',
-                    },
-                  }}>
-                    <JsonForms
-                        schema={dataSchema}
-                        uischema={uiSchema}
-                        data={data}
-                        renderers={customRenderers}
-                        cells={materialCells}
-                        onChange={onDataChange}/>
-                </Box>
+                <Tabs
+                    value={activeTopTab}
+                    onChange={(_, v) => setActiveTopTab(v)}
+                    sx={{ minHeight: 'auto', borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+                    <Tab label="Properties" />
+                    <Tab label="Retry Policy" />
+                </Tabs>
+                <TabPanel value={activeTopTab} index={0}>
+                    <Box sx={{
+                        minWidth: "500px",
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'auto',
+                        p: 2,
+                        // Ensure JsonForms categorization layout takes full space
+                        '& > div': {
+                          display: 'flex',
+                          flexDirection: 'column',
+                          flex: 1,
+                        },
+                        // Style MUI Tabs for the categorization
+                        '& .MuiTabs-root': {
+                          minHeight: 'auto',
+                          borderBottom: 1,
+                          borderColor: 'divider',
+                        },
+                        // Ensure tab panels display correctly
+                        '& .MuiBox-root[role="tabpanel"]': {
+                          flex: 1,
+                          overflow: 'auto',
+                          pt: 2,
+                        },
+                        // Fix for hidden tab panels
+                        '& .MuiBox-root[role="tabpanel"][hidden]': {
+                          display: 'none',
+                        },
+                      }}>
+                        <JsonForms
+                            schema={dataSchema}
+                            uischema={uiSchema}
+                            data={data}
+                            renderers={customRenderers}
+                            cells={materialCells}
+                            onChange={onDataChange}/>
+                    </Box>
+                </TabPanel>
+                <TabPanel value={activeTopTab} index={1}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, minWidth: "500px" }}>
+                        <TextField
+                            label="Maximum Attempts"
+                            type="number"
+                            helperText="0 = unlimited. Leave blank to use the workflow default (500)."
+                            value={retryOptions.maximumAttempts ?? ''}
+                            disabled={readOnly}
+                            onChange={(e) => setRetryOptions(r => ({ ...r, maximumAttempts: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        />
+                        <TextField
+                            label="Backoff Coefficient"
+                            type="number"
+                            helperText="Leave blank to use the workflow default (2.0)."
+                            value={retryOptions.backoffCoefficient ?? ''}
+                            disabled={readOnly}
+                            onChange={(e) => setRetryOptions(r => ({ ...r, backoffCoefficient: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        />
+                        <TextField
+                            label="Initial Interval (seconds)"
+                            type="number"
+                            helperText="Leave blank to use the Temporal SDK default."
+                            value={retryOptions.initialIntervalSeconds ?? ''}
+                            disabled={readOnly}
+                            onChange={(e) => setRetryOptions(r => ({ ...r, initialIntervalSeconds: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        />
+                        <TextField
+                            label="Maximum Interval (seconds)"
+                            type="number"
+                            helperText="Leave blank to use the workflow default (100)."
+                            value={retryOptions.maximumIntervalSeconds ?? ''}
+                            disabled={readOnly}
+                            onChange={(e) => setRetryOptions(r => ({ ...r, maximumIntervalSeconds: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        />
+                        <Box>
+                            <TextField
+                                label="Add non-retryable error type"
+                                value={doNotRetryInput}
+                                disabled={readOnly}
+                                onChange={(e) => setDoNotRetryInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && doNotRetryInput.trim()) {
+                                        setRetryOptions(r => ({ ...r, doNotRetry: [...(r.doNotRetry || []), doNotRetryInput.trim()] }));
+                                        setDoNotRetryInput('');
+                                    }
+                                }}
+                            />
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                                {(retryOptions.doNotRetry || []).map((errType, idx) => (
+                                    <Chip
+                                        key={errType}
+                                        label={errType}
+                                        onDelete={readOnly ? undefined : () => setRetryOptions(r => ({ ...r, doNotRetry: r.doNotRetry!.filter((_, i) => i !== idx) }))}
+                                    />
+                                ))}
+                            </Box>
+                        </Box>
+                    </Box>
+                </TabPanel>
             </DialogContent>
             <DialogActions>
                 <Button autoFocus onClick={handleClose}>
