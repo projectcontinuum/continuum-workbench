@@ -1,0 +1,437 @@
+import * as React from 'react';
+import DialogTitle from '@mui/material/DialogTitle';
+import Dialog from '@mui/material/Dialog';
+import {
+  Box, Button, DialogActions, DialogContent, IconButton, TextField, Typography, styled,
+  Tabs, Tab, ToggleButtonGroup, ToggleButton, Autocomplete, Tooltip, CircularProgress,
+  Chip, Snackbar, Alert
+} from '@mui/material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import CloseIcon from '@mui/icons-material/Close';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import BoltIcon from '@mui/icons-material/Bolt';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { Cron } from 'react-js-cron';
+import 'react-js-cron/dist/styles.css';
+import { Node, Edge } from 'reactflow';
+import { IWorkflowSchedule } from '@continuum/core';
+import WorkflowScheduleService from '../../service/WorkflowScheduleService';
+import './ScheduleWorkflowDialog.css';
+
+interface StyledDialogProps {
+    customWidth?: number;
+}
+
+const StyledDialog = styled(Dialog, {
+    shouldForwardProp: (prop) => prop !== 'customWidth',
+})<StyledDialogProps>(({ theme, customWidth }) => ({
+    '& .MuiPaper-root': {
+      backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
+      backgroundImage: 'none',
+      opacity: 1,
+      width: customWidth ? `${customWidth}px` : 'auto',
+      maxWidth: 'none',
+      position: 'relative',
+      overflow: 'visible',
+    },
+    '& .MuiDialogContent-root': {
+      padding: theme.spacing(2),
+      backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
+    },
+    '& .MuiDialogActions-root': {
+      padding: theme.spacing(1),
+      backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
+    },
+    '& .MuiDialogTitle-root': {
+      backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
+    },
+}));
+
+interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+}
+
+function TabPanel({ children, value, index }: TabPanelProps) {
+    const isActive = value === index;
+    return (
+        <div role="tabpanel" hidden={!isActive} id={`schedule-tabpanel-${index}`} aria-labelledby={`schedule-tab-${index}`}>
+            {isActive && <Box sx={{ pt: 2 }}>{children}</Box>}
+        </div>
+    );
+}
+
+const DIALOG_WIDTH = 640;
+const DEFAULT_CRON = '0 9 * * *';
+
+function getTimeZoneOptions(): string[] {
+    try {
+        return typeof (Intl as any).supportedValuesOf === 'function'
+            ? (Intl as any).supportedValuesOf('timeZone')
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+export interface ScheduleWorkflowDialogProps {
+    open: boolean;
+    workflowId: string;
+    workflowName: string;
+    nodes: Node[];
+    edges: Edge[];
+    initialTab?: 0 | 1;
+    onClose: () => void;
+}
+
+export default function ScheduleWorkflowDialog({ open, workflowId, workflowName, nodes, edges, initialTab = 0, onClose }: ScheduleWorkflowDialogProps) {
+    const scheduleService = React.useMemo(() => new WorkflowScheduleService(), []);
+    const timeZoneOptions = React.useMemo(getTimeZoneOptions, []);
+
+    const [activeTab, setActiveTab] = React.useState<0 | 1>(initialTab);
+    const [snackbar, setSnackbar] = React.useState<{ severity: 'success' | 'error'; message: string } | null>(null);
+
+    // New Schedule tab state
+    const [name, setName] = React.useState(workflowName);
+    const [mode, setMode] = React.useState<'builder' | 'advanced'>('builder');
+    const [cronExpression, setCronExpression] = React.useState(DEFAULT_CRON);
+    const [cronError, setCronError] = React.useState<string | null>(null);
+    const [timeZone, setTimeZone] = React.useState<string | null>(null);
+    const [submitting, setSubmitting] = React.useState(false);
+
+    // Manage Schedules tab state
+    const [schedules, setSchedules] = React.useState<IWorkflowSchedule[]>([]);
+    const [loadingSchedules, setLoadingSchedules] = React.useState(false);
+    const [hasLoadedSchedules, setHasLoadedSchedules] = React.useState(false);
+    const [rowActionInProgress, setRowActionInProgress] = React.useState<string | null>(null);
+    const [scheduleToDelete, setScheduleToDelete] = React.useState<IWorkflowSchedule | null>(null);
+
+    const isNameValid = name.trim().length > 0;
+    const isCronValid = mode === 'builder' ? !cronError : cronExpression.trim().length > 0;
+    const canSubmit = isNameValid && isCronValid && !submitting;
+
+    const refreshSchedules = React.useCallback(async () => {
+        setLoadingSchedules(true);
+        try {
+            const result = await scheduleService.listSchedules(workflowName);
+            setSchedules(result);
+        } catch (error) {
+            console.error(error);
+            setSnackbar({ severity: 'error', message: 'Failed to load schedules. Please try again.' });
+        } finally {
+            setLoadingSchedules(false);
+            setHasLoadedSchedules(true);
+        }
+    }, [scheduleService, workflowName]);
+
+    React.useEffect(() => {
+        if (activeTab === 1 && !hasLoadedSchedules) {
+            refreshSchedules();
+        }
+    }, [activeTab, hasLoadedSchedules, refreshSchedules]);
+
+    const handleClose = React.useCallback(() => {
+        if (submitting) return;
+        onClose();
+    }, [onClose, submitting]);
+
+    const handleCreateSubmit = React.useCallback(async () => {
+        setSubmitting(true);
+        try {
+            await scheduleService.createSchedule({
+                name: name.trim(),
+                cronExpression: cronExpression.trim(),
+                timeZone: timeZone ?? undefined,
+                continuumWorkflowModel: {
+                    id: workflowId,
+                    name: workflowName,
+                    active: false,
+                    edges,
+                    nodes
+                }
+            });
+            setSnackbar({ severity: 'success', message: 'Workflow scheduled successfully.' });
+            setName(workflowName);
+            setMode('builder');
+            setCronExpression(DEFAULT_CRON);
+            setCronError(null);
+            setTimeZone(null);
+            if (hasLoadedSchedules) {
+                refreshSchedules();
+            }
+        } catch (error) {
+            console.error(error);
+            setSnackbar({ severity: 'error', message: 'Failed to schedule workflow. Please try again.' });
+        } finally {
+            setSubmitting(false);
+        }
+    }, [scheduleService, name, cronExpression, timeZone, workflowId, workflowName, nodes, edges, hasLoadedSchedules, refreshSchedules]);
+
+    const onTogglePause = React.useCallback(async (schedule: IWorkflowSchedule) => {
+        setRowActionInProgress(schedule.scheduleId);
+        try {
+            if (schedule.paused) {
+                await scheduleService.unpauseSchedule(schedule.scheduleId);
+            } else {
+                await scheduleService.pauseSchedule(schedule.scheduleId);
+            }
+            await refreshSchedules();
+        } catch (error) {
+            console.error(error);
+            setSnackbar({ severity: 'error', message: `Failed to ${schedule.paused ? 'resume' : 'pause'} schedule. Please try again.` });
+        } finally {
+            setRowActionInProgress(null);
+        }
+    }, [scheduleService, refreshSchedules]);
+
+    const onTriggerNow = React.useCallback(async (schedule: IWorkflowSchedule) => {
+        setRowActionInProgress(schedule.scheduleId);
+        try {
+            await scheduleService.triggerSchedule(schedule.scheduleId);
+            setSnackbar({ severity: 'success', message: 'Triggered — check the execution viewer.' });
+        } catch (error) {
+            console.error(error);
+            setSnackbar({ severity: 'error', message: 'Failed to trigger schedule. Please try again.' });
+        } finally {
+            setRowActionInProgress(null);
+        }
+    }, [scheduleService]);
+
+    const onConfirmDelete = React.useCallback(async () => {
+        if (!scheduleToDelete) return;
+        const scheduleId = scheduleToDelete.scheduleId;
+        setRowActionInProgress(scheduleId);
+        setScheduleToDelete(null);
+        try {
+            await scheduleService.deleteSchedule(scheduleId);
+            await refreshSchedules();
+        } catch (error) {
+            console.error(error);
+            setSnackbar({ severity: 'error', message: 'Failed to delete schedule. Please try again.' });
+        } finally {
+            setRowActionInProgress(null);
+        }
+    }, [scheduleService, scheduleToDelete, refreshSchedules]);
+
+    const columns: GridColDef<IWorkflowSchedule>[] = [
+        { field: 'name', headerName: 'Name', flex: 1, minWidth: 140 },
+        {
+            field: 'cronExpression', headerName: 'Cron', width: 130,
+            renderCell: (params) => <span style={{ fontFamily: 'monospace' }}>{params.value}</span>
+        },
+        { field: 'timeZone', headerName: 'Time zone', width: 150, valueGetter: (value) => value || '—' },
+        {
+            field: 'paused', headerName: 'Status', width: 100,
+            renderCell: (params) => (
+                <Chip
+                    size="small"
+                    label={params.value ? 'Paused' : 'Active'}
+                    color={params.value ? 'default' : 'success'}
+                />
+            )
+        },
+        {
+            field: 'nextRunTimes', headerName: 'Next run', width: 180,
+            valueGetter: (value: string[], row) => (!row.paused && value?.length) ? new Date(value[0]).toLocaleString() : '—'
+        },
+        {
+            field: 'actions', headerName: '', width: 130, sortable: false, filterable: false,
+            renderCell: (params) => {
+                const schedule = params.row;
+                const busy = rowActionInProgress === schedule.scheduleId;
+                return (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title={schedule.paused ? 'Resume' : 'Pause'}>
+                            <IconButton size="small" disabled={busy} onClick={() => onTogglePause(schedule)}>
+                                {schedule.paused ? <PlayCircleOutlineIcon fontSize="small" /> : <PauseCircleOutlineIcon fontSize="small" />}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Trigger now">
+                            <IconButton size="small" disabled={busy} onClick={() => onTriggerNow(schedule)}>
+                                <BoltIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton size="small" disabled={busy} onClick={() => setScheduleToDelete(schedule)}>
+                                <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                );
+            }
+        }
+    ];
+
+    return (
+        <>
+            <StyledDialog open={open} onClose={handleClose} customWidth={DIALOG_WIDTH}>
+                <DialogTitle>Schedule Workflow</DialogTitle>
+                <IconButton
+                    aria-label="close"
+                    onClick={handleClose}
+                    disabled={submitting}
+                    sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}>
+                    <CloseIcon />
+                </IconButton>
+                <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Tabs
+                        value={activeTab}
+                        onChange={(_, v) => setActiveTab(v)}
+                        sx={{ minHeight: 'auto', borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+                        <Tab label="New Schedule" />
+                        <Tab label="Manage Schedules" />
+                    </Tabs>
+
+                    <TabPanel value={activeTab} index={0}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px' }}>
+                            <TextField
+                                label="Schedule name"
+                                fullWidth
+                                autoFocus
+                                value={name}
+                                disabled={submitting}
+                                error={!isNameValid}
+                                helperText={!isNameValid
+                                    ? 'Name is required'
+                                    : "Keep this as the workflow's name so it shows up under Manage Schedules for this workflow."}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+
+                            <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Cadence</Typography>
+                                        <Tooltip title="How often the workflow should run.">
+                                            <InfoOutlinedIcon fontSize="small" color="action" />
+                                        </Tooltip>
+                                    </Box>
+                                    <ToggleButtonGroup
+                                        size="small"
+                                        exclusive
+                                        value={mode}
+                                        disabled={submitting}
+                                        onChange={(_, v) => v && setMode(v)}
+                                    >
+                                        <ToggleButton value="builder" sx={{ fontSize: '11px', padding: '2px 6px', textTransform: 'none' }}>Builder</ToggleButton>
+                                        <ToggleButton value="advanced" sx={{ fontSize: '11px', padding: '2px 6px', textTransform: 'none' }}>Advanced (cron)</ToggleButton>
+                                    </ToggleButtonGroup>
+                                </Box>
+
+                                {mode === 'builder' ? (
+                                    <Box className="continuum-cron-builder">
+                                        <Cron
+                                            value={cronExpression}
+                                            setValue={(v: string) => { setCronExpression(v); setCronError(null); }}
+                                            onError={(err: any) => setCronError(err ? 'Invalid cron expression' : null)}
+                                            disabled={submitting}
+                                            clearButton={false}
+                                        />
+                                    </Box>
+                                ) : (
+                                    <TextField
+                                        label="Cron expression"
+                                        fullWidth
+                                        placeholder="0 9 * * *"
+                                        value={cronExpression}
+                                        disabled={submitting}
+                                        error={!isCronValid}
+                                        helperText={!isCronValid ? 'Enter a valid 5-field cron expression' : 'e.g. "0 9 * * *" = every day at 9:00'}
+                                        onChange={(e) => setCronExpression(e.target.value)}
+                                    />
+                                )}
+                            </Box>
+
+                            <Autocomplete
+                                options={timeZoneOptions}
+                                value={timeZone}
+                                disabled={submitting}
+                                onChange={(_, v) => setTimeZone(v)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Time zone (optional)"
+                                        helperText={timeZoneOptions.length === 0
+                                            ? 'Time zone list unavailable in this environment; leave blank to use the server default.'
+                                            : 'Leave blank to use the server default.'}
+                                    />
+                                )}
+                            />
+                        </Box>
+                    </TabPanel>
+
+                    <TabPanel value={activeTab} index={1}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: '560px' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                    Schedules for &ldquo;{workflowName}&rdquo;
+                                </Typography>
+                                <Tooltip title="Refresh">
+                                    <IconButton size="small" onClick={refreshSchedules} sx={{ padding: '4px' }}>
+                                        {loadingSchedules ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+
+                            {hasLoadedSchedules && schedules.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                    No schedules found with this workflow&apos;s name. If a schedule was renamed, it
+                                    won&apos;t appear here — check Manage from the workflow it still matches.
+                                </Typography>
+                            ) : (
+                                <Box sx={{ height: 320 }}>
+                                    <DataGrid
+                                        rows={schedules}
+                                        columns={columns}
+                                        getRowId={(row) => row.scheduleId}
+                                        loading={loadingSchedules}
+                                        hideFooter
+                                        disableRowSelectionOnClick
+                                        sx={{ width: '100%', height: '100%' }}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
+                    </TabPanel>
+                </DialogContent>
+                {activeTab === 0 && (
+                    <DialogActions>
+                        <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+                        <Button onClick={handleCreateSubmit} disabled={!canSubmit}>
+                            {submitting ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                            <Typography>Schedule Workflow</Typography>
+                        </Button>
+                    </DialogActions>
+                )}
+            </StyledDialog>
+
+            <Dialog open={Boolean(scheduleToDelete)} onClose={() => setScheduleToDelete(null)}>
+                <DialogTitle>Delete schedule?</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2">
+                        This will permanently delete &ldquo;{scheduleToDelete?.name}&rdquo;. This can&apos;t be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setScheduleToDelete(null)}>Cancel</Button>
+                    <Button onClick={onConfirmDelete} color="error">Delete</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar
+                open={Boolean(snackbar)}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                {snackbar && (
+                    <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)}>
+                        {snackbar.message}
+                    </Alert>
+                )}
+            </Snackbar>
+        </>
+    );
+}
