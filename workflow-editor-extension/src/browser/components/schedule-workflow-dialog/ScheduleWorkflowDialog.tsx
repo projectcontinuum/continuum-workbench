@@ -426,11 +426,11 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                 autoHideDuration={4000}
                 onClose={() => setSnackbar(null)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                {snackbar && (
+                {snackbar ? (
                     <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)}>
                         {snackbar.message}
                     </Alert>
-                )}
+                ) : undefined}
             </Snackbar>
         </>
     );
