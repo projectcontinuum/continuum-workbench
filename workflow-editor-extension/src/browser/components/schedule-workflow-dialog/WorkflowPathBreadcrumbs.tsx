@@ -11,7 +11,7 @@ export default function WorkflowPathBreadcrumbs({ workflowName }: WorkflowPathBr
 
     return (
         <Breadcrumbs
-            separator="›"
+            separator="/"
             aria-label="workflow folder path"
             sx={{
                 '& .MuiBreadcrumbs-separator': { color: 'text.disabled' },

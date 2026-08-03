@@ -16,6 +16,7 @@ import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import BoltIcon from '@mui/icons-material/Bolt';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 import { Node, Edge } from 'reactflow';
 import { IWorkflowSchedule } from '@continuum/core';
 import WorkflowScheduleService from '../../service/WorkflowScheduleService';
@@ -386,21 +387,25 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     <TabPanel value={activeTab} index={0}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px', overflow: 'auto', pt: 1 }}>
                             <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                    Schedule name
-                                </Typography>
                                 <Box sx={{
-                                    border: '1px solid',
-                                    borderColor: 'divider',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
                                     borderRadius: 1,
                                     px: 1.75,
-                                    py: 1.5,
-                                    backgroundColor: 'action.disabledBackground',
+                                    py: 1.25,
+                                    backgroundColor: 'action.hover',
                                 }}>
-                                    <WorkflowPathBreadcrumbs workflowName={workflowName} />
+                                    <AccountTreeOutlinedIcon fontSize="small" color="action" />
+                                    <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                            Workflow
+                                        </Typography>
+                                        <WorkflowPathBreadcrumbs workflowName={workflowName} />
+                                    </Box>
                                 </Box>
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 1.75 }}>
-                                    Matches this workflow&apos;s name, so it shows up under Manage Schedules for this workflow.
+                                    A snapshot of this workflow will be captured and run on this schedule.
                                 </Typography>
                             </Box>
 
