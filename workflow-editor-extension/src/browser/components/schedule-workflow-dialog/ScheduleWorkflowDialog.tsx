@@ -16,12 +16,10 @@ import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import BoltIcon from '@mui/icons-material/Bolt';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Cron } from 'react-js-cron';
-import 'react-js-cron/dist/styles.css';
 import { Node, Edge } from 'reactflow';
 import { IWorkflowSchedule } from '@continuum/core';
 import WorkflowScheduleService from '../../service/WorkflowScheduleService';
-import './ScheduleWorkflowDialog.css';
+import CronBuilder from './CronBuilder';
 
 interface StyledDialogProps {
     customWidth?: number;
@@ -138,7 +136,6 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
     const [name, setName] = React.useState(workflowName);
     const [mode, setMode] = React.useState<'builder' | 'advanced'>('builder');
     const [cronExpression, setCronExpression] = React.useState(DEFAULT_CRON);
-    const [cronError, setCronError] = React.useState<string | null>(null);
     const [timeZone, setTimeZone] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
 
@@ -150,7 +147,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
     const [scheduleToDelete, setScheduleToDelete] = React.useState<IWorkflowSchedule | null>(null);
 
     const isNameValid = name.trim().length > 0;
-    const isCronValid = mode === 'builder' ? !cronError : cronExpression.trim().length > 0;
+    const isCronValid = mode === 'builder' ? true : cronExpression.trim().length > 0;
     const canSubmit = isNameValid && isCronValid && !submitting;
 
     const refreshSchedules = React.useCallback(async () => {
@@ -250,7 +247,6 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
             setName(workflowName);
             setMode('builder');
             setCronExpression(DEFAULT_CRON);
-            setCronError(null);
             setTimeZone(null);
             if (hasLoadedSchedules) {
                 refreshSchedules();
@@ -425,15 +421,11 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                                 </Box>
 
                                 {mode === 'builder' ? (
-                                    <Box className="continuum-cron-builder">
-                                        <Cron
-                                            value={cronExpression}
-                                            setValue={(v: string) => { setCronExpression(v); setCronError(null); }}
-                                            onError={(err: any) => setCronError(err ? 'Invalid cron expression' : null)}
-                                            disabled={submitting}
-                                            clearButton={false}
-                                        />
-                                    </Box>
+                                    <CronBuilder
+                                        value={cronExpression}
+                                        onChange={setCronExpression}
+                                        disabled={submitting}
+                                    />
                                 ) : (
                                     <TextField
                                         label="Cron expression"
