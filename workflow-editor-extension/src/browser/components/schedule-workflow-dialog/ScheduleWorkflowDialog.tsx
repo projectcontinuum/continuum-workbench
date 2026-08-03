@@ -8,6 +8,8 @@ import {
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import CloseIcon from '@mui/icons-material/Close';
+import MaximizeIcon from '@mui/icons-material/Fullscreen';
+import RestoreIcon from '@mui/icons-material/FullscreenExit';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
@@ -23,17 +25,20 @@ import './ScheduleWorkflowDialog.css';
 
 interface StyledDialogProps {
     customWidth?: number;
+    customHeight?: number;
 }
 
 const StyledDialog = styled(Dialog, {
-    shouldForwardProp: (prop) => prop !== 'customWidth',
-})<StyledDialogProps>(({ theme, customWidth }) => ({
+    shouldForwardProp: (prop) => prop !== 'customWidth' && prop !== 'customHeight',
+})<StyledDialogProps>(({ theme, customWidth, customHeight }) => ({
     '& .MuiPaper-root': {
       backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
       backgroundImage: 'none',
       opacity: 1,
       width: customWidth ? `${customWidth}px` : 'auto',
+      height: customHeight ? `${customHeight}px` : 'auto',
       maxWidth: 'none',
+      maxHeight: 'none',
       position: 'relative',
       overflow: 'visible',
     },
@@ -50,6 +55,27 @@ const StyledDialog = styled(Dialog, {
     },
 }));
 
+const ResizeHandle = styled('div')(({ theme }) => ({
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: '20px',
+    height: '20px',
+    cursor: 'nwse-resize',
+    zIndex: 9999,
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: '2px',
+        right: '2px',
+        width: '0',
+        height: '0',
+        borderStyle: 'solid',
+        borderWidth: '0 0 12px 12px',
+        borderColor: `transparent transparent ${theme.palette.grey[500]} transparent`,
+    },
+}));
+
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -59,13 +85,21 @@ interface TabPanelProps {
 function TabPanel({ children, value, index }: TabPanelProps) {
     const isActive = value === index;
     return (
-        <div role="tabpanel" hidden={!isActive} id={`schedule-tabpanel-${index}`} aria-labelledby={`schedule-tab-${index}`}>
-            {isActive && <Box sx={{ pt: 2 }}>{children}</Box>}
+        <div
+            role="tabpanel"
+            hidden={!isActive}
+            id={`schedule-tabpanel-${index}`}
+            aria-labelledby={`schedule-tab-${index}`}
+            style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : undefined}>
+            {isActive && <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>{children}</Box>}
         </div>
     );
 }
 
 const DIALOG_WIDTH = 640;
+const DIALOG_HEIGHT = 640;
+const MIN_DIALOG_WIDTH = 480;
+const MIN_DIALOG_HEIGHT = 400;
 const DEFAULT_CRON = '0 9 * * *';
 
 function getTimeZoneOptions(): string[] {
@@ -94,6 +128,11 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
 
     const [activeTab, setActiveTab] = React.useState<0 | 1>(initialTab);
     const [snackbar, setSnackbar] = React.useState<{ severity: 'success' | 'error'; message: string } | null>(null);
+    const [dialogSize, setDialogSize] = React.useState({ width: DIALOG_WIDTH, height: DIALOG_HEIGHT });
+    const [isResizing, setIsResizing] = React.useState(false);
+    const [isMaximized, setIsMaximized] = React.useState(false);
+    const resizeStartPos = React.useRef({ x: 0, y: 0, width: 0, height: 0 });
+    const previousSize = React.useRef({ width: DIALOG_WIDTH, height: DIALOG_HEIGHT });
 
     // New Schedule tab state
     const [name, setName] = React.useState(workflowName);
@@ -138,6 +177,59 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
         if (submitting) return;
         onClose();
     }, [onClose, submitting]);
+
+    const handleMaximize = React.useCallback(() => {
+        if (isMaximized) {
+            setDialogSize(previousSize.current);
+            setIsMaximized(false);
+        } else {
+            previousSize.current = dialogSize;
+            setDialogSize({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+            setIsMaximized(true);
+        }
+    }, [isMaximized, dialogSize]);
+
+    const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
+        if (isMaximized) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsResizing(true);
+        resizeStartPos.current = {
+            x: e.clientX,
+            y: e.clientY,
+            width: dialogSize.width,
+            height: dialogSize.height,
+        };
+    }, [dialogSize, isMaximized]);
+
+    React.useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const deltaX = e.clientX - resizeStartPos.current.x;
+            const deltaY = e.clientY - resizeStartPos.current.y;
+
+            const newWidth = Math.max(MIN_DIALOG_WIDTH, Math.min(window.innerWidth, resizeStartPos.current.width + deltaX));
+            const newHeight = Math.max(MIN_DIALOG_HEIGHT, Math.min(window.innerHeight, resizeStartPos.current.height + deltaY));
+
+            setDialogSize({ width: newWidth, height: newHeight });
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing]);
 
     const handleCreateSubmit = React.useCallback(async () => {
         setSubmitting(true);
@@ -268,8 +360,19 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
 
     return (
         <>
-            <StyledDialog open={open} onClose={handleClose} customWidth={DIALOG_WIDTH}>
+            <StyledDialog
+                open={open}
+                onClose={handleClose}
+                customWidth={dialogSize.width}
+                customHeight={dialogSize.height}>
                 <DialogTitle>Schedule Workflow</DialogTitle>
+                <IconButton
+                    aria-label="maximize"
+                    onClick={handleMaximize}
+                    disabled={submitting}
+                    sx={{ position: 'absolute', right: 48, top: 8, color: (theme) => theme.palette.grey[500] }}>
+                    {isMaximized ? <RestoreIcon /> : <MaximizeIcon />}
+                </IconButton>
                 <IconButton
                     aria-label="close"
                     onClick={handleClose}
@@ -277,7 +380,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}>
                     <CloseIcon />
                 </IconButton>
-                <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column' }}>
+                <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <Tabs
                         value={activeTab}
                         onChange={(_, v) => setActiveTab(v)}
@@ -287,7 +390,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     </Tabs>
 
                     <TabPanel value={activeTab} index={0}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px', overflow: 'auto' }}>
                             <TextField
                                 label="Schedule name"
                                 fullWidth
@@ -364,7 +467,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     </TabPanel>
 
                     <TabPanel value={activeTab} index={1}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: '560px' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: '560px', height: '100%' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                                     Schedules for &ldquo;{workflowName}&rdquo;
@@ -382,7 +485,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                                     won&apos;t appear here — check Manage from the workflow it still matches.
                                 </Typography>
                             ) : (
-                                <Box sx={{ height: 320 }}>
+                                <Box sx={{ flex: 1, minHeight: 240 }}>
                                     <DataGrid
                                         rows={schedules}
                                         columns={columns}
@@ -406,6 +509,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                         </Button>
                     </DialogActions>
                 )}
+                {!isMaximized && <ResizeHandle onMouseDown={handleResizeStart} />}
             </StyledDialog>
 
             <Dialog open={Boolean(scheduleToDelete)} onClose={() => setScheduleToDelete(null)}>
