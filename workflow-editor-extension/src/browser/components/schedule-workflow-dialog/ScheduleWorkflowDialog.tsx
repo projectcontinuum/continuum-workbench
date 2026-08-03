@@ -20,6 +20,7 @@ import { Node, Edge } from 'reactflow';
 import { IWorkflowSchedule } from '@continuum/core';
 import WorkflowScheduleService from '../../service/WorkflowScheduleService';
 import CronBuilder from './CronBuilder';
+import WorkflowPathBreadcrumbs from './WorkflowPathBreadcrumbs';
 
 interface StyledDialogProps {
     customWidth?: number;
@@ -133,7 +134,6 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
     const previousSize = React.useRef({ width: DIALOG_WIDTH, height: DIALOG_HEIGHT });
 
     // New Schedule tab state
-    const [name, setName] = React.useState(workflowName);
     const [mode, setMode] = React.useState<'builder' | 'advanced'>('builder');
     const [cronExpression, setCronExpression] = React.useState(DEFAULT_CRON);
     const [timeZone, setTimeZone] = React.useState<string | null>(null);
@@ -146,9 +146,8 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
     const [rowActionInProgress, setRowActionInProgress] = React.useState<string | null>(null);
     const [scheduleToDelete, setScheduleToDelete] = React.useState<IWorkflowSchedule | null>(null);
 
-    const isNameValid = name.trim().length > 0;
     const isCronValid = mode === 'builder' ? true : cronExpression.trim().length > 0;
-    const canSubmit = isNameValid && isCronValid && !submitting;
+    const canSubmit = isCronValid && !submitting;
 
     const refreshSchedules = React.useCallback(async () => {
         setLoadingSchedules(true);
@@ -232,7 +231,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
         setSubmitting(true);
         try {
             await scheduleService.createSchedule({
-                name: name.trim(),
+                name: workflowName,
                 cronExpression: cronExpression.trim(),
                 timeZone: timeZone ?? undefined,
                 continuumWorkflowModel: {
@@ -244,7 +243,6 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                 }
             });
             setSnackbar({ severity: 'success', message: 'Workflow scheduled successfully.' });
-            setName(workflowName);
             setMode('builder');
             setCronExpression(DEFAULT_CRON);
             setTimeZone(null);
@@ -257,7 +255,7 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
         } finally {
             setSubmitting(false);
         }
-    }, [scheduleService, name, cronExpression, timeZone, workflowId, workflowName, nodes, edges, hasLoadedSchedules, refreshSchedules]);
+    }, [scheduleService, cronExpression, timeZone, workflowId, workflowName, nodes, edges, hasLoadedSchedules, refreshSchedules]);
 
     const onTogglePause = React.useCallback(async (schedule: IWorkflowSchedule) => {
         setRowActionInProgress(schedule.scheduleId);
@@ -386,19 +384,25 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     </Tabs>
 
                     <TabPanel value={activeTab} index={0}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px', overflow: 'auto' }}>
-                            <TextField
-                                label="Schedule name"
-                                fullWidth
-                                autoFocus
-                                value={name}
-                                disabled={submitting}
-                                error={!isNameValid}
-                                helperText={!isNameValid
-                                    ? 'Name is required'
-                                    : "Keep this as the workflow's name so it shows up under Manage Schedules for this workflow."}
-                                onChange={(e) => setName(e.target.value)}
-                            />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px', overflow: 'auto', pt: 1 }}>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                    Schedule name
+                                </Typography>
+                                <Box sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1,
+                                    px: 1.75,
+                                    py: 1.5,
+                                    backgroundColor: 'action.disabledBackground',
+                                }}>
+                                    <WorkflowPathBreadcrumbs workflowName={workflowName} />
+                                </Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 1.75 }}>
+                                    Matches this workflow&apos;s name, so it shows up under Manage Schedules for this workflow.
+                                </Typography>
+                            </Box>
 
                             <Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -461,9 +465,12 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     <TabPanel value={activeTab} index={1}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: '560px', height: '100%' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                    Schedules for &ldquo;{workflowName}&rdquo;
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, minWidth: 0, overflow: 'hidden' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        Schedules for
+                                    </Typography>
+                                    <WorkflowPathBreadcrumbs workflowName={workflowName} />
+                                </Box>
                                 <Tooltip title="Refresh">
                                     <IconButton size="small" onClick={refreshSchedules} sx={{ padding: '4px' }}>
                                         {loadingSchedules ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
