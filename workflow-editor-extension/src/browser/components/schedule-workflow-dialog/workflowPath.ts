@@ -15,13 +15,8 @@ export function parseWorkflowPath(workflowName: string): WorkflowPathSegments {
         return { folders: [], current: 'Untitled' };
     }
 
-    const last = segments[segments.length - 1];
+    const current = segments[segments.length - 1];
     const folders = segments.slice(0, -1);
-    const current = stripExtension(last) || last;
 
     return { folders, current };
-}
-
-function stripExtension(name: string): string {
-    return name.replace(/\.[^./]+$/, '');
 }
