@@ -468,19 +468,30 @@ export default function ScheduleWorkflowDialog({ open, workflowId, workflowName,
                     </TabPanel>
 
                     <TabPanel value={activeTab} index={1}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: '560px', height: '100%' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, minWidth: 0, overflow: 'hidden' }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                        Schedules for
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '560px', height: '100%' }}>
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                borderRadius: 1,
+                                px: 1.75,
+                                py: 1.25,
+                                backgroundColor: 'action.hover',
+                            }}>
+                                <AccountTreeOutlinedIcon fontSize="small" color="action" />
+                                <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        Workflow
                                     </Typography>
                                     <WorkflowPathBreadcrumbs workflowName={workflowName} />
                                 </Box>
-                                <Tooltip title="Refresh">
-                                    <IconButton size="small" onClick={refreshSchedules} sx={{ padding: '4px' }}>
-                                        {loadingSchedules ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
-                                    </IconButton>
-                                </Tooltip>
+                                <Box sx={{ ml: 'auto', flexShrink: 0 }}>
+                                    <Tooltip title="Refresh">
+                                        <IconButton size="small" onClick={refreshSchedules} sx={{ padding: '4px' }}>
+                                            {loadingSchedules ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
                             </Box>
 
                             {hasLoadedSchedules && schedules.length === 0 ? (

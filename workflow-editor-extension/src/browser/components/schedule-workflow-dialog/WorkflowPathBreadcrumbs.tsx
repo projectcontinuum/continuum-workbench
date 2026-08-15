@@ -15,7 +15,8 @@ export default function WorkflowPathBreadcrumbs({ workflowName }: WorkflowPathBr
             aria-label="workflow folder path"
             sx={{
                 '& .MuiBreadcrumbs-separator': { color: 'text.disabled' },
-                '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' },
+                '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap' },
+                minWidth: 0,
                 overflow: 'hidden',
             }}>
             {folders.map((segment, idx) => (
@@ -23,12 +24,11 @@ export default function WorkflowPathBreadcrumbs({ workflowName }: WorkflowPathBr
                     key={`${segment}-${idx}`}
                     variant="body2"
                     color="text.secondary"
-                    sx={{ whiteSpace: 'nowrap' }}
                     title={segment}>
                     {segment}
                 </Typography>
             ))}
-            <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }} title={current}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }} title={current}>
                 {current}
             </Typography>
         </Breadcrumbs>
