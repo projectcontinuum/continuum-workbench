@@ -13,7 +13,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { JsonForms, JsonFormsDispatch, withJsonFormsLayoutProps } from '@jsonforms/react';
 import {
   materialCells,
-  materialRenderers
+  materialRenderers,
+  MaterialLayoutRenderer
 } from '@jsonforms/material-renderers';
 import {
   JsonFormsCore,
@@ -37,7 +38,7 @@ import { IRetryOptions } from '@continuum/core';
  * Renders a group that stretches horizontally to fill parent but shrinks vertically to fit children
  */
 const MaterialGroupLayoutRenderer = (props: LayoutProps) => {
-  const { uischema, schema, path, visible, renderers, cells } = props;
+  const { uischema, schema, path, visible, enabled, renderers, cells } = props;
 
   const groupLayout = uischema as GroupLayout;
   const label = groupLayout.label;
@@ -62,18 +63,16 @@ const MaterialGroupLayoutRenderer = (props: LayoutProps) => {
           {label}
         </Typography>
       )}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {groupLayout.elements?.map((element, index) => (
-          <JsonFormsDispatch
-            key={`${path}-group-${index}`}
-            uischema={element}
-            schema={schema}
-            path={path}
-            renderers={renderers}
-            cells={cells}
-          />
-        ))}
-      </Box>
+      <MaterialLayoutRenderer
+        elements={groupLayout.elements ?? []}
+        schema={schema}
+        path={path}
+        enabled={enabled}
+        direction="column"
+        visible={visible}
+        renderers={renderers}
+        cells={cells}
+      />
     </Box>
   );
 };
