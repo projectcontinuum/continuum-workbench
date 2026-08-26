@@ -42,10 +42,10 @@ function TabPanel(props: TabPanelProps) {
       hidden={!isActive}
       id={`categorization-tabpanel-${index}`}
       aria-labelledby={`categorization-tab-${index}`}
-      style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' } : undefined}
+      style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } : undefined}
       {...other}
     >
-      {isActive && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {isActive && <Box sx={{ pt: 2, minWidth: 0 }}>{children}</Box>}
     </div>
   );
 }
@@ -339,6 +339,7 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                 <TabPanel value={activeTopTab} index={0}>
                     <Box sx={{
                         width: '100%',
+                        minWidth: 0,
                         boxSizing: 'border-box',
                         flex: 1,
                         display: 'flex',
