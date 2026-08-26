@@ -345,16 +345,25 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                         display: 'flex',
                         flexDirection: 'column',
                         overflowY: 'auto',
-                        overflowX: 'hidden',
                         p: 2,
                       }}>
-                        <JsonForms
-                            schema={dataSchema}
-                            uischema={uiSchema}
-                            data={data}
-                            renderers={customRenderers}
-                            cells={materialCells}
-                            onChange={onDataChange}/>
+                        <Box sx={{
+                            width: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box',
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflowX: 'hidden',
+                          }}>
+                            <JsonForms
+                                schema={dataSchema}
+                                uischema={uiSchema}
+                                data={data}
+                                renderers={customRenderers}
+                                cells={materialCells}
+                                onChange={onDataChange}/>
+                        </Box>
                     </Box>
                 </TabPanel>
                 <TabPanel value={activeTopTab} index={1}>
