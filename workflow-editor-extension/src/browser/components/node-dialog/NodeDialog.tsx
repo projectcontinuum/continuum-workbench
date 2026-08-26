@@ -355,6 +355,15 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             display: 'flex',
                             flexDirection: 'column',
                             overflowX: 'hidden',
+                            // JsonForms' stock MaterialLayoutRenderer renders every layout's
+                            // Grid container without `wrap="nowrap"`, so column-direction
+                            // (VerticalLayout/Group) containers default to flexWrap: 'wrap'.
+                            // That's semantically wrong for a single stacked column and is what
+                            // inflates item heights; row-direction (HorizontalLayout) containers
+                            // are left alone since their wrap is the intended responsive reflow.
+                            '& .MuiGrid-container[class*="MuiGrid-direction-xs-column"]': {
+                              flexWrap: 'nowrap',
+                            },
                           }}>
                             <JsonForms
                                 schema={dataSchema}
