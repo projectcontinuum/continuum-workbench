@@ -10,86 +10,22 @@ import MaximizeIcon from '@mui/icons-material/Fullscreen';
 import RestoreIcon from '@mui/icons-material/FullscreenExit';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { JsonForms, JsonFormsDispatch, withJsonFormsLayoutProps } from '@jsonforms/react';
+import { JsonForms } from '@jsonforms/react';
 import {
   materialCells,
-  materialRenderers,
-  MaterialLayoutRenderer
+  materialRenderers
 } from '@jsonforms/material-renderers';
 import {
   JsonFormsCore,
   JsonSchema,
-  UISchemaElement,
-  rankWith,
-  uiTypeIs,
-  and,
-  categorizationHasCategory,
-  Categorization,
-  Category,
-  LayoutProps,
-  GroupLayout
+  UISchemaElement
 } from '@jsonforms/core';
 import CodeEditorControl, { codeEditorTester } from './CodeEditorRenderer';
 import CredentialControl, { credentialTester } from './CredentialRenderer';
 import { IRetryOptions } from '@continuum/core';
 
 /**
- * Custom Group Layout Renderer
- * Renders a group that stretches horizontally to fill parent but shrinks vertically to fit children
- */
-const MaterialGroupLayoutRenderer = (props: LayoutProps) => {
-  const { uischema, schema, path, visible, enabled, renderers, cells } = props;
-
-  const groupLayout = uischema as GroupLayout;
-  const label = groupLayout.label;
-
-  if (!visible) {
-    return null;
-  }
-
-  return (
-    <Box
-      sx={{
-        mb: 2,
-        p: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        width: '100%',
-      }}
-    >
-      {label && (
-        <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600 }}>
-          {label}
-        </Typography>
-      )}
-      <MaterialLayoutRenderer
-        elements={groupLayout.elements ?? []}
-        schema={schema}
-        path={path}
-        enabled={enabled}
-        direction="column"
-        visible={visible}
-        renderers={renderers}
-        cells={cells}
-      />
-    </Box>
-  );
-};
-
-// Wrap with JSON Forms HOC to inject props
-const MaterialGroupLayout = withJsonFormsLayoutProps(MaterialGroupLayoutRenderer);
-
-/**
- * Custom tester for Group layout.
- */
-const groupTester = rankWith(
-  6, // Higher rank than default renderers
-  uiTypeIs('Group')
-);
-
-/**
- * Custom Tab Panel component for categorization layout
+ * Custom Tab Panel component for the dialog's own top-level Properties/Retry Policy tabs
  */
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -113,80 +49,6 @@ function TabPanel(props: TabPanelProps) {
     </div>
   );
 }
-
-/**
- * Custom Material Categorization Layout Renderer
- * Renders categories as MUI Tabs with proper tab panel content
- */
-const MaterialCategorizationLayoutRenderer = (props: LayoutProps) => {
-  const { uischema, schema, path, visible, renderers, cells } = props;
-  const [activeTab, setActiveTab] = React.useState(0);
-
-  const categorization = uischema as Categorization;
-  // Get all Category elements from the categorization
-  const categories = (categorization.elements || []).filter(
-    (el): el is Category => el.type === 'Category'
-  );
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-
-  if (!visible) {
-    return null;
-  }
-
-  return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          {categories.map((category: Category, index: number) => (
-            <Tab
-              key={index}
-              label={category.label || `Tab ${index + 1}`}
-              id={`categorization-tab-${index}`}
-              aria-controls={`categorization-tabpanel-${index}`}
-            />
-          ))}
-        </Tabs>
-      </Box>
-      {categories.map((category: Category, index: number) => (
-        <TabPanel key={index} value={activeTab} index={index}>
-          {category.elements?.map((element, elementIndex) => (
-            <JsonFormsDispatch
-              key={`${path}-${index}-${elementIndex}`}
-              uischema={element}
-              schema={schema}
-              path={path}
-              renderers={renderers}
-              cells={cells}
-            />
-          ))}
-        </TabPanel>
-      ))}
-    </Box>
-  );
-};
-
-// Wrap with JSON Forms HOC to inject props
-const MaterialCategorizationLayout = withJsonFormsLayoutProps(MaterialCategorizationLayoutRenderer);
-
-/**
- * Custom tester for Categorization layout.
- * Checks if the UI schema is a Categorization with at least one Category element.
- */
-const categorizationTester = rankWith(
-  6, // Higher rank than default renderers
-  and(
-    uiTypeIs('Categorization'),
-    categorizationHasCategory
-  )
-);
 
 const WORKFLOW_DEFAULT_RETRY = {
   maximumAttempts: 500,
@@ -316,8 +178,6 @@ console.log('[NodeDialog] Registering custom renderers including CredentialContr
 const customRenderers = [
   { tester: codeEditorTester, renderer: CodeEditorControl },
   { tester: credentialTester, renderer: CredentialControl },
-  { tester: categorizationTester, renderer: MaterialCategorizationLayout },
-  { tester: groupTester, renderer: MaterialGroupLayout },
   ...materialRenderers,
 ];
 
