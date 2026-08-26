@@ -338,34 +338,14 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                 </Tabs>
                 <TabPanel value={activeTopTab} index={0}>
                     <Box sx={{
-                        minWidth: "500px",
+                        width: '100%',
+                        boxSizing: 'border-box',
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        overflow: 'auto',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
                         p: 2,
-                        // Ensure JsonForms categorization layout takes full space
-                        '& > div': {
-                          display: 'flex',
-                          flexDirection: 'column',
-                          flex: 1,
-                        },
-                        // Style MUI Tabs for the categorization
-                        '& .MuiTabs-root': {
-                          minHeight: 'auto',
-                          borderBottom: 1,
-                          borderColor: 'divider',
-                        },
-                        // Ensure tab panels display correctly
-                        '& .MuiBox-root[role="tabpanel"]': {
-                          flex: 1,
-                          overflow: 'auto',
-                          pt: 2,
-                        },
-                        // Fix for hidden tab panels
-                        '& .MuiBox-root[role="tabpanel"][hidden]': {
-                          display: 'none',
-                        },
                       }}>
                         <JsonForms
                             schema={dataSchema}
@@ -377,7 +357,7 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                     </Box>
                 </TabPanel>
                 <TabPanel value={activeTopTab} index={1}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, minWidth: "500px" }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, width: '100%', boxSizing: 'border-box' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <Button size="small" onClick={resetRetryToDefaults} disabled={readOnly}>
                                 Reset to workflow defaults
