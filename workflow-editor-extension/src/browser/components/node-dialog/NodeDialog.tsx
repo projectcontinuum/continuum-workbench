@@ -134,7 +134,7 @@ const StyledDialog = styled(Dialog, {
       maxWidth: 'none',
       maxHeight: 'none',
       position: 'relative',
-      overflow: 'visible',
+      overflow: 'hidden',
     },
     '& .MuiDialogContent-root': {
       padding: theme.spacing(2),
@@ -328,7 +328,7 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                 }}>
                 <CloseIcon />
             </IconButton>
-            <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                 <Tabs
                     value={activeTopTab}
                     onChange={(_, v) => setActiveTopTab(v)}
