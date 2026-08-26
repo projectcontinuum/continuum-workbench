@@ -362,6 +362,15 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             '& .MuiGrid-container[class*="MuiGrid-direction-xs-column"]': {
                               flexWrap: 'nowrap',
                             },
+                            // MaterialGroupLayoutRenderer forwards a `direction` prop that
+                            // JsonForms' own dispatch never actually supplies (only Vertical/
+                            // HorizontalLayout hardcode their own), so it's always undefined and
+                            // MUI Grid's own default (direction: 'row', wrap: 'wrap') silently
+                            // applies to every Group's content instead of a stacked column.
+                            '& .MuiCardContent-root > .MuiGrid-container': {
+                              flexDirection: 'column',
+                              flexWrap: 'nowrap',
+                            },
                           }}>
                             <JsonForms
                                 schema={dataSchema}
