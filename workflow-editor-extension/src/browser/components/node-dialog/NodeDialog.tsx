@@ -379,6 +379,40 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                               flexDirection: 'column',
                               flexWrap: 'nowrap',
                             },
+                            // @jsonforms/material-renderers@3.7.0's ArrayLayoutToolbar (array
+                            // control title bar) and TableToolbar (plain table control title
+                            // row) both render their label as
+                            // `<Grid container spacing={2}><Grid><Typography variant="h6">`.
+                            // That markup targets material-renderers' actual peer dependency,
+                            // @mui/material@^7 (its `Grid` has no `item` prop and spaces
+                            // children with plain `gap`), but this app pins
+                            // @mui/material@^5.15.6, whose *classic* Grid still implements
+                            // `spacing` via a negative `margin-left`/oversized `width` on the
+                            // container -- applied unconditionally whenever `container` is set,
+                            // regardless of whether children carry the compensating
+                            // `.MuiGrid-item` class. Since material-renderers' own children never
+                            // pass `item` (that's the v7-only API it was written against), the
+                            // compensating padding never lands, so the title bleeds
+                            // `-theme.spacing(2)` (16px by default) to the left of the
+                            // container with nothing to counteract it. Under `overflowX:
+                            // 'hidden'` that overflowing paint was still visible; now that this
+                            // box is a real scroll container (`overflowX: 'auto'`, needed to fix
+                            // wide-table overflow above), content left of the padding box at
+                            // scrollLeft 0 is genuinely clipped, cropping the first character(s)
+                            // of the label (e.g. "Workflow Variables" -> "orkflow Variables").
+                            // Neutralize just the uncompensated bleed on these two specific,
+                            // known-mispaired Grids (Toolbar for array-with-detail/accordion
+                            // controls, TableCell for plain array-of-objects tables) and restore
+                            // the intended gap between the label and its optional validation
+                            // icon with `columnGap` instead, rather than touching `.MuiGrid-
+                            // container` globally (which would also affect legitimately-paired
+                            // container+item Grids elsewhere that still rely on this negative-
+                            // margin/padding compensation to align correctly).
+                            '& .MuiToolbar-root .MuiGrid-container[class*="MuiGrid-spacing-xs-"], & .MuiTableCell-root .MuiGrid-container[class*="MuiGrid-spacing-xs-"]': {
+                              marginLeft: 0,
+                              width: '100%',
+                              columnGap: 2,
+                            },
                           }}>
                             <JsonForms
                                 schema={dataSchema}
