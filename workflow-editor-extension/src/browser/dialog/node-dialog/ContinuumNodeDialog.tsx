@@ -66,7 +66,7 @@ export default class ContinuumNodeDialog extends ReactDialog<ContinuumNodeDialog
     @inject(ContinuumJsonFormsPropertyWidget)
     protected readonly jsonFormsWidget: ContinuumJsonFormsPropertyWidget;
 
-    protected node?: Node<IBaseNodeData>;
+    protected selectedNode?: Node<IBaseNodeData>;
     protected readOnly = false;
     protected currentProperties: any = {};
     protected currentRetryOptions: IRetryOptions = {};
@@ -97,7 +97,7 @@ export default class ContinuumNodeDialog extends ReactDialog<ContinuumNodeDialog
     }
 
     setNode(node: Node<IBaseNodeData>, readOnly: boolean): void {
-        this.node = node;
+        this.selectedNode = node;
         this.readOnly = readOnly;
         this.currentProperties = node.data.properties ?? {};
         this.currentRetryOptions = node.data.retryOptions ?? {};
@@ -139,7 +139,7 @@ export default class ContinuumNodeDialog extends ReactDialog<ContinuumNodeDialog
                 activeTab={this.activeTab}
                 onTabChange={this.handleTabChange}
                 propertiesHostRef={this.handlePropertiesHost}
-                nodeId={this.node?.id}
+                nodeId={this.selectedNode?.id}
                 retryOptions={this.currentRetryOptions}
                 readOnly={this.readOnly}
                 onRetryOptionsChange={this.handleRetryOptionsChange}
