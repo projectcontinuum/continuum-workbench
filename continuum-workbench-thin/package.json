@@ -39,6 +39,7 @@
         "@theia/navigator": "latest",
         "@theia/preferences": "latest",
         "@theia/process": "latest",
+        "@theia/property-view": "latest",
         "@theia/workspace": "latest",
         "@continuum/core": "*",
         "@continuum/workflow-editor-extension": "*"

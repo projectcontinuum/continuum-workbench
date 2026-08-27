@@ -7,8 +7,8 @@ import ReactFlow, { Connection, Controls, EdgeChange, Node, NodeChange, Panel, a
 import BaseNode from '../node/BaseNode';
 import BaseEdge from '../node/BaseEdge';
 import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem } from '@mui/material';
-import { IBaseNodeData, IRetryOptions, IWorkflow } from "@continuum/core";
-import NodeDialog, { NodeDialogProps } from "../node-dialog/NodeDialog";
+import { IBaseNodeData, IWorkflow } from "@continuum/core";
+import { ContinuumNodeDialogResult } from "../../dialog/node-dialog/ContinuumNodeDialog";
 import ScheduleWorkflowDialog from "../schedule-workflow-dialog/ScheduleWorkflowDialog";
 import WorkflowService from "../../service/WorkflowService";
 import LockClockIcon from '@mui/icons-material/LockClock';
@@ -30,7 +30,8 @@ export interface WorkflowEditorProps {
     onChange: (workflow: IWorkflow)=>void,
     onContextMenu?: (event: React.MouseEvent, selectedNodeId?: string)=>void,
     onHistoryChange?: ()=>void,
-    onRunSuccess?: (workflowId: string)=>void
+    onRunSuccess?: (workflowId: string)=>void,
+    openNodeDialog: (node: Node<IBaseNodeData>, readOnly: boolean) => Promise<ContinuumNodeDialogResult | undefined>
 }
 
 export interface WorkflowEditorRef {
@@ -39,14 +40,12 @@ export interface WorkflowEditorRef {
     openScheduleDialog: (initialTab?: 0 | 1) => void;
 }
 
-const WorkflowEditor = forwardRef<WorkflowEditorRef, WorkflowEditorProps>(({ workflow, onChange, onContextMenu, onHistoryChange, onRunSuccess }, ref) => {
+const WorkflowEditor = forwardRef<WorkflowEditorRef, WorkflowEditorProps>(({ workflow, onChange, onContextMenu, onHistoryChange, onRunSuccess, openNodeDialog }, ref) => {
     const reactFlowRef = useRef<HTMLDivElement | null>(null);
     const workflowService = React.useMemo(() => new WorkflowService(), []);
     const [flowEdges, setFlowEdges] = React.useState(workflow.edges);
     const [flowNodes, setFlowNodes] = React.useState(workflow.nodes);
     const [isActive, _setIsActive] = React.useState(workflow.active);
-    const [nodeDialogProps, setNodeDialogProps] = React.useState<NodeDialogProps | null>(null);
-    const [selectedNode, setSelectedNode] = React.useState<Node<IBaseNodeData> | null>(null);
     const [scheduleMenuAnchor, setScheduleMenuAnchor] = React.useState<HTMLElement | null>(null);
     const [scheduleDialogState, setScheduleDialogState] = React.useState<{ open: boolean; initialTab: 0 | 1 }>({ open: false, initialTab: 0 });
 
@@ -149,36 +148,21 @@ const WorkflowEditor = forwardRef<WorkflowEditorRef, WorkflowEditorProps>(({ wor
         setScheduleDialogState(s => ({ ...s, open: false }));
     }, []);
 
-    const onNodeDialogClose = React.useCallback(()=>{
-        setNodeDialogProps(null);
-    }, [setNodeDialogProps]);
+    const applyNodeDialogResult = React.useCallback((node: Node<IBaseNodeData>, result: ContinuumNodeDialogResult) => {
+        node.data.properties = result.properties;
+        node.data.retryOptions = result.retryOptions;
+        setFlowNodes(flowNodes);
+    }, [flowNodes, setFlowNodes]);
 
-    const onNodeDialogSaved = React.useCallback((properties: any, retryOptions?: IRetryOptions)=>{
-        setNodeDialogProps(null);
-        console.log("selectedNode ", selectedNode);
-        if(selectedNode) {
-            console.log("Saving ", properties, "to node ", selectedNode);
-            selectedNode.data.properties = properties;
-            selectedNode.data.retryOptions = retryOptions;
-            setFlowNodes(flowNodes);
-        }
-    }, [setNodeDialogProps, selectedNode, flowNodes, setFlowNodes]);
-
-    const openNodeSettings = React.useCallback(() => {
+    const openNodeSettings = React.useCallback(async () => {
         const selected = flowNodes.find(n => n.selected);
         if (selected) {
-            setNodeDialogProps({
-                open: true,
-                onClose: onNodeDialogClose,
-                onSave: onNodeDialogSaved,
-                initialData: selected.data.properties || {},
-                dataSchema: selected.data.propertiesSchema || {},
-                uiSchema: selected.data.propertiesUISchema || {},
-                initialRetryOptions: selected.data.retryOptions || {}
-            });
-            setSelectedNode(selected);
+            const result = await openNodeDialog(selected, isActive);
+            if (result) {
+                applyNodeDialogResult(selected, result);
+            }
         }
-    }, [flowNodes, onNodeDialogClose, onNodeDialogSaved, setNodeDialogProps, setSelectedNode]);
+    }, [flowNodes, isActive, openNodeDialog, applyNodeDialogResult]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -187,19 +171,12 @@ const WorkflowEditor = forwardRef<WorkflowEditorRef, WorkflowEditorProps>(({ wor
         openScheduleDialog
     }), [onRun, openNodeSettings, openScheduleDialog]);
 
-    const onNodeDoubleClick = React.useCallback((event: React.MouseEvent, clickedNode: Node<IBaseNodeData>) => {
-        console.log("onNodeDoubleClick", event, clickedNode);
-        setNodeDialogProps({
-            open: true,
-            onClose: onNodeDialogClose,
-            onSave: onNodeDialogSaved,
-            initialData: clickedNode.data.properties || {} ,
-            dataSchema: clickedNode.data.propertiesSchema || {},
-            uiSchema: clickedNode.data.propertiesUISchema || {},
-            initialRetryOptions: clickedNode.data.retryOptions || {}
-        });
-        setSelectedNode(clickedNode);
-    }, [setNodeDialogProps, onNodeDialogSaved, onNodeDialogClose, setSelectedNode]);
+    const onNodeDoubleClick = React.useCallback(async (event: React.MouseEvent, clickedNode: Node<IBaseNodeData>) => {
+        const result = await openNodeDialog(clickedNode, isActive);
+        if (result) {
+            applyNodeDialogResult(clickedNode, result);
+        }
+    }, [openNodeDialog, isActive, applyNodeDialogResult]);
 
     const onNodeContextMenu = React.useCallback((event: React.MouseEvent, node: Node<IBaseNodeData>) => {
         // Select the node that was right-clicked
@@ -278,11 +255,6 @@ const WorkflowEditor = forwardRef<WorkflowEditorRef, WorkflowEditorProps>(({ wor
                     </IconButton>
                 </Panel>}
             </ReactFlow>
-            {nodeDialogProps && <NodeDialog
-                {...nodeDialogProps!!}
-                onSave={onNodeDialogSaved}
-                onClose={onNodeDialogClose}
-                readOnly={isActive}/>}
             {scheduleDialogState.open && <ScheduleWorkflowDialog
                 open={scheduleDialogState.open}
                 workflowId={workflow.id}

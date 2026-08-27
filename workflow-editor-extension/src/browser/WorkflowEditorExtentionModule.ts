@@ -12,6 +12,7 @@ import { CommandContribution, MenuContribution } from '@theia/core';
 import ContinuumCommandcontribution from './contribution/ContinuumCommandContribution';
 import ContinuumMenuContribution from './contribution/ContinuumMenuContribution';
 import ContinuumNodeDialog, { ContinuumNodeDialogProps } from './dialog/node-dialog/ContinuumNodeDialog';
+import ContinuumJsonFormsPropertyWidget from './dialog/node-dialog/ContinuumJsonFormsPropertyWidget';
 import { ContinuumAboutDialog } from './dialog/about/ContinuumAboutDialog';
 import WorkflowViewerWidgetFactory from './widgets/workflow-viewer/WorkflowViewerWidgetFactory';
 import WorkflowViewerOpenHandler from './handlers/WorkflowViewerOpenHandler';
@@ -52,8 +53,9 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(OpenHandler).to(WorkflowViewerOpenHandler).inSingletonScope();
 
     // Dialogs
+    bind(ContinuumJsonFormsPropertyWidget).toSelf().inSingletonScope();
     bind(ContinuumNodeDialog).toSelf().inSingletonScope();
-    bind(ContinuumNodeDialogProps).toConstantValue({title: "Node Dialog"});
+    bind(ContinuumNodeDialogProps).toConstantValue({title: "Node Settings"});
 
     // About dialog — rebind to Continuum-branded version
     rebind(AboutDialogProps).toConstantValue({ title: 'Continuum' });

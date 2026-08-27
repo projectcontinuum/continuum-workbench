@@ -14,6 +14,7 @@
     "@theia/navigator": "latest",
     "@theia/preferences": "latest",
     "@theia/process": "latest",
+    "@theia/property-view": "latest",
     "@theia/workspace": "latest",
     "@theia/ai-chat": "latest",
     "@theia/ai-chat-ui": "latest",

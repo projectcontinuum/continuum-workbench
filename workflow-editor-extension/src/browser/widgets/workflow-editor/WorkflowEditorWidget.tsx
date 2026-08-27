@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 import React, { useEffect } from "react";
 import { MessageService, UNTITLED_SCHEME, URI } from "@theia/core";
 import { RemoteFileSystemProvider } from '@theia/filesystem/lib/common/remote-file-system-provider';
-import { INodeRepoTreeItem, IWorkflow, Workflow } from '@continuum/core';
+import { IBaseNodeData, INodeRepoTreeItem, IWorkflow, Workflow } from '@continuum/core';
 import WorkflowEditor, { WorkflowEditorRef } from '../../components/workflow-editor/WorkflowEditor';
 import { ThemeProvider } from '@mui/material/styles';
 import { Node, Edge, ReactFlowInstance, ReactFlowProvider, useReactFlow } from 'reactflow';
@@ -19,7 +19,7 @@ import { ColorRegistry } from '@theia/core/lib/browser/color-registry';
 import { useMUIThemeStore } from '../../store/MUIThemeStore';
 import WorkflowDocument from './WorkflowDocument';
 import { FileDialogService } from '@theia/filesystem/lib/browser';
-import ContinuumNodeDialog from '../../dialog/node-dialog/ContinuumNodeDialog';
+import ContinuumNodeDialog, { ContinuumNodeDialogResult } from '../../dialog/node-dialog/ContinuumNodeDialog';
 import { ContextMenuRenderer } from '@theia/core/lib/browser/context-menu-renderer';
 import { ContextKeyService, ContextKey } from '@theia/core/lib/browser/context-key-service';
 import { WORKFLOW_EDITOR_CONTEXT_MENU } from '../../menu/WorkflowEditorContextMenu';
@@ -352,6 +352,11 @@ export default class WorkflowEditorWidget extends ReactWidget implements Navigat
         this.workflowEditorRef.current?.openNodeSettings();
     }
 
+    openNodeDialog = async (node: Node<IBaseNodeData>, readOnly: boolean): Promise<ContinuumNodeDialogResult | undefined> => {
+        this.continuumNodeDialog.setNode(node, readOnly);
+        return this.continuumNodeDialog.open();
+    }
+
     hasSelectedNodes(): boolean {
         // Check pending selection first (for right-click selection)
         if (this.pendingSelectedNodeId !== undefined) {
@@ -494,6 +499,7 @@ export default class WorkflowEditorWidget extends ReactWidget implements Navigat
                     onContextMenu={this.handleContextMenu}
                     onHistoryChange={this.onHistoryChange}
                     onRunSuccess={this.handleRunSuccess}
+                    openNodeDialog={this.openNodeDialog}
                     setReactflow={(rFlow)=>{this.reactFlow = rFlow}}
                     colorRegistry={this.colorRegistry}
                     workflowEditorRef={this.workflowEditorRef}/>
@@ -510,6 +516,7 @@ interface WorkflowEditorWidgetHOCProps {
     onContextMenu: (event: React.MouseEvent, selectedNodeId?: string)=>void;
     onHistoryChange: ()=>void;
     onRunSuccess: (workflowId: string)=>void;
+    openNodeDialog: (node: Node<IBaseNodeData>, readOnly: boolean) => Promise<ContinuumNodeDialogResult | undefined>;
     workflowEditorRef: React.RefObject<WorkflowEditorRef>;
 }
 
@@ -521,6 +528,7 @@ function WorkflowEditorWidgetHOC({
         onContextMenu,
         onHistoryChange,
         onRunSuccess,
+        openNodeDialog,
         workflowEditorRef
     }: WorkflowEditorWidgetHOCProps
 ) {
@@ -544,7 +552,8 @@ function WorkflowEditorWidgetHOC({
                 workflow={workflow}
                 onContextMenu={onContextMenu}
                 onHistoryChange={onHistoryChange}
-                onRunSuccess={onRunSuccess}/>}
+                onRunSuccess={onRunSuccess}
+                openNodeDialog={openNodeDialog}/>}
         </ThemeProvider>
     );
 }
