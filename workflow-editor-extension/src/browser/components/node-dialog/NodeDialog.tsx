@@ -42,7 +42,7 @@ function TabPanel(props: TabPanelProps) {
       hidden={!isActive}
       id={`categorization-tabpanel-${index}`}
       aria-labelledby={`categorization-tab-${index}`}
-      style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } : undefined}
+      style={isActive ? { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'auto' } : undefined}
       {...other}
     >
       {isActive && <Box sx={{ pt: 2, minWidth: 0 }}>{children}</Box>}
@@ -352,7 +352,15 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             boxSizing: 'border-box',
                             display: 'flex',
                             flexDirection: 'column',
-                            overflowX: 'hidden',
+                            // Some renderers (notably the stock MaterialTableControl used for
+                            // plain array-of-objects Controls) render a bare <Table> with no
+                            // wrapping <TableContainer>, so a wide row (long free-text cell
+                            // value, many columns) sizes to its own content width instead of
+                            // shrinking to the dialog. `hidden` here would silently clip that
+                            // content (or, for descendants whose containing block escapes this
+                            // box, let it render outside the dialog's bounds); `auto` instead
+                            // gives the dialog its own contained horizontal scrollbar.
+                            overflowX: 'auto',
                             // JsonForms' stock MaterialLayoutRenderer renders every layout's
                             // Grid container without `wrap="nowrap"`, so column-direction
                             // (VerticalLayout/Group) containers default to flexWrap: 'wrap'.
