@@ -343,7 +343,6 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                         boxSizing: 'border-box',
                         display: 'flex',
                         flexDirection: 'column',
-                        overflowY: 'auto',
                         p: 2,
                       }}>
                         <Box sx={{
@@ -361,6 +360,16 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             // box, let it render outside the dialog's bounds); `auto` instead
                             // gives the dialog its own contained horizontal scrollbar.
                             overflowX: 'auto',
+                            // Setting only overflowX makes browsers implicitly promote
+                            // overflowY to 'auto' too (CSS overflow computed-value rule), which
+                            // stacks a 3rd nested auto-scroll container on top of this Box's own
+                            // parent (overflowY: 'auto') and the outer `tabpanel` div (also
+                            // overflow: auto). Competing "scroll into view" adjustments from
+                            // multiple ancestors on focus is what clips/shifts a field's
+                            // floating label when you click into it. `tabpanel` is the single,
+                            // correctly height-bounded scroll owner -- keep this box (and its
+                            // parent, above) as non-scrolling so there's only one.
+                            overflowY: 'visible',
                             // JsonForms' stock MaterialLayoutRenderer renders every layout's
                             // Grid container without `wrap="nowrap"`, so column-direction
                             // (VerticalLayout/Group) containers default to flexWrap: 'wrap'.
