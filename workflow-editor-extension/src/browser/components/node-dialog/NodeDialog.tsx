@@ -374,6 +374,17 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             // correctly height-bounded scroll owner -- keep this box (and its
                             // parent, above) as non-scrolling so there's only one.
                             overflowY: 'visible',
+                            // Per CSS's overflow computed-value rule, `overflowX: 'auto'` above
+                            // forces this box's computed overflowY to 'auto' too (the 'visible'
+                            // set immediately above is not the resolved value) -- so despite the
+                            // comment above wanting this box non-scrolling, it still establishes
+                            // a real clipping/scroll container. The topmost field's outlined
+                            // label floats ~9px above its own input's border (MUI's standard
+                            // `translate(x, -9px) scale(0.75)`), which pokes above this box's own
+                            // top edge and gets clipped by it with zero top padding. `pt: 1.5`
+                            // gives that first label room without affecting the gap between
+                            // fields (handled separately below).
+                            pt: 1.5,
                             // JsonForms' stock MaterialLayoutRenderer renders every layout's
                             // Grid container without `wrap="nowrap"`, so column-direction
                             // (VerticalLayout/Group) containers default to flexWrap: 'wrap'.
