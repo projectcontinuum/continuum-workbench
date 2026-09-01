@@ -125,7 +125,11 @@ interface StyledDialogProps {
 const StyledDialog = styled(Dialog, {
     shouldForwardProp: (prop) => prop !== 'customWidth' && prop !== 'customHeight',
 })<StyledDialogProps>(({ theme, customWidth, customHeight }) => ({
-    '& .MuiPaper-root': {
+    // Scoped to `.MuiDialog-paper` (not the generic `.MuiPaper-root`) - the
+    // latter is a plain descendant selector that also matches any nested
+    // Paper-based component (e.g. workflowCredentials' Accordion items, which
+    // are MuiPaper-root too), forcing them to the dialog's own width/height.
+    '& .MuiDialog-paper': {
       backgroundColor: theme.palette.background.paper || theme.palette.background.default || '#1e1e1e',
       backgroundImage: 'none',
       opacity: 1,

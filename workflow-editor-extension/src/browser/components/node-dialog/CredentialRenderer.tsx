@@ -254,7 +254,13 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
         </Button>
       </Box>
       {error && (
-        <FormHelperText error={true} sx={{ mt: 1 }}>
+        // Bounded so an unexpectedly long error message (even after
+        // CredentialsService's own capping) can never balloon this array
+        // item's height inside the Accordion - this is what caused the
+        // whole workflowCredentials table to blow out to ~900px when the
+        // credentials-manager backend was unreachable and returned a raw
+        // HTML error page as the fetch failure message.
+        <FormHelperText error={true} sx={{ mt: 1, maxHeight: 60, overflow: 'auto', wordBreak: 'break-word' }}>
           {error}
         </FormHelperText>
       )}
