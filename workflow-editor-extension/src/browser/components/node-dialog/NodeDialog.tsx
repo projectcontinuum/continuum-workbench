@@ -383,6 +383,19 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                             '& .MuiGrid-container[class*="MuiGrid-direction-xs-column"]': {
                               flexWrap: 'nowrap',
                             },
+                            // MaterialLayoutRenderer (util/layout.tsx) hardcodes
+                            // `spacing={direction === 'row' ? 2 : 0}` - VerticalLayout/Group
+                            // columns get literally zero gap between their stacked children, and
+                            // MaterialInputControl's own FormControl has no margin either. Every
+                            // outlined field's shrunk label sits ~9px above its own input border,
+                            // so with zero gap it renders flush against (visually overlapping)
+                            // the bottom border of the field stacked above it. Restore a real gap
+                            // between stacked column children (top-level dialog fields, and
+                            // array-item `detail` fields alike) with a margin the row-direction
+                            // case doesn't need, since its own `spacing={2}` already works.
+                            '& .MuiGrid-container[class*="MuiGrid-direction-xs-column"] > .MuiGrid-root + .MuiGrid-root': {
+                              mt: 2,
+                            },
                             // MaterialGroupLayoutRenderer forwards a `direction` prop that
                             // JsonForms' own dispatch never actually supplies (only Vertical/
                             // HorizontalLayout hardcode their own), so it's always undefined and
