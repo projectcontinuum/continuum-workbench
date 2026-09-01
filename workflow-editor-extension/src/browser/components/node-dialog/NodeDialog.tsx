@@ -422,6 +422,34 @@ export default function NodeDialog({ onClose, onSave, readOnly=false, open, init
                               width: '100%',
                               columnGap: 2,
                             },
+                            // ExpandPanelRenderer (the per-item accordion header rendered by
+                            // @jsonforms/material-renderers' array-with-detail control, e.g.
+                            // workflowCredentials/workflowVariables) lays out its
+                            // AccordionSummary as two Grid "columns" (item label+index vs.
+                            // move-up/move-down/delete icons) using the v7-only Grid2 `size`
+                            // prop. `size` isn't a prop @mui/material@^5's classic Grid
+                            // understands, so neither column gets its intended ~70/30 or
+                            // ~90/10 width split -- both fall back to content-based flex
+                            // sizing and can crowd or overlap, especially once
+                            // `showSortButtons: true` adds a third icon button competing for
+                            // space with the item's label. Force the header row to stay
+                            // side-by-side without wrapping, let the now-unsized "item" Grids
+                            // (they carry .MuiGrid-root but never .MuiGrid-item, since `item`
+                            // is likewise never passed) shrink instead of overflowing, and
+                            // ellipsize the label span itself so a long computed label loses
+                            // characters gracefully rather than colliding with the icons.
+                            '& .MuiAccordionSummary-root .MuiGrid-container': {
+                              flexWrap: 'nowrap',
+                            },
+                            '& .MuiAccordionSummary-root .MuiGrid-root:not(.MuiGrid-container)': {
+                              minWidth: 0,
+                              flex: '0 1 auto',
+                            },
+                            '& .MuiAccordionSummary-root span[id^="expand-panel"]': {
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            },
                           }}>
                             <JsonForms
                                 schema={dataSchema}

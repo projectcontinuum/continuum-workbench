@@ -188,10 +188,10 @@ const CredentialRenderer: React.FC<CredentialRendererProps> = (props) => {
           {label}
         </Typography>
       )}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Autocomplete
-          fullWidth
           size="small"
+          sx={{ flex: '1 1 auto', minWidth: 0 }}
           options={credentials}
           getOptionLabel={(option) => option.name}
           value={credentials.find((c) => c.name === data) || null}
